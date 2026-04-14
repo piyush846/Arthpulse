@@ -8,6 +8,8 @@
 # FastAPI is the web framework — it handles incoming HTTP requests
 # and maps them to your Python functions automatically
 from fastapi import FastAPI, Depends
+from engines.sentiment import run_sentiment_engine #engines
+from engines.ner import run_ner_engine
 
 # CORSMiddleware solves the browser security problem:
 # React runs on localhost:3000, FastAPI on localhost:8000
@@ -109,26 +111,24 @@ def startup():
 # ─────────────────────────────────────────────────────────────────────
 def run_fetch():
     print("[Fetch] Fetching from NewsAPI...")
-    
-    # Returns a list of dicts — each dict is one article
-    # Example: [{"title": "...", "url": "...", "source": "Reuters", ...}, ...]
     newsapi_articles = fetch_newsapi_articles()
     print(f"[Fetch] Got {len(newsapi_articles)} articles from NewsAPI")
 
     print("[Fetch] Fetching from RSS feeds...")
-    
-    # Same structure as above — list of dicts
-    # Both fetchers return identical dict shapes so store can handle both
     rss_articles = fetch_rss_articles()
     print(f"[Fetch] Got {len(rss_articles)} articles from RSS")
 
-    # Combine both lists into one using + operator
-    # Simple list concatenation — [1,2,3] + [4,5,6] = [1,2,3,4,5,6]
     all_articles = newsapi_articles + rss_articles
-    
-    # Save everything to SQLite
-    # store_articles handles duplicates — skips articles with existing URLs
     store_articles(all_articles)
+
+    # Run AI engines after every fetch
+    # They only process articles where sentiment/tickers is NULL
+    # so already processed articles are automatically skipped
+    print("[Engines] Running sentiment analysis...")
+    run_sentiment_engine()
+
+    print("[Engines] Running ticker extraction...")
+    run_ner_engine()
 
 
 # ─────────────────────────────────────────────────────────────────────
