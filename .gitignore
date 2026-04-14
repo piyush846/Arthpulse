@@ -1,0 +1,22 @@
+# Environment variables (API keys)
+backend/.env
+frontend/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Database
+*.db
+
+# Node modules
+frontend/node_modules/
+
+# Build
+frontend/build/
+
+# VS Code
+.vscode/
