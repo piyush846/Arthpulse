@@ -10,7 +10,10 @@
 from fastapi import FastAPI, Depends
 from engines.sentiment import run_sentiment_engine #engines
 from engines.ner import run_ner_engine
-
+from api.routes_news import router as news_router
+from api.routes_tickers import router as tickers_router
+from api.routes_dashboard import router as dashboard_router
+from scheduler import start_scheduler
 # CORSMiddleware solves the browser security problem:
 # React runs on localhost:3000, FastAPI on localhost:8000
 # Browsers block requests between different ports by default
@@ -70,8 +73,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-# ─────────────────────────────────────────────────────────────────────
+app.include_router(news_router, prefix="/api")
+app.include_router(tickers_router, prefix="/api")
+app.include_router(dashboard_router, prefix="/api")# ────────────────────────────────────────────────────────────────────
 # STARTUP EVENT
 # This function runs AUTOMATICALLY once when the server starts.
 # You never need to call it manually.
@@ -98,6 +102,7 @@ def startup():
     # Fetch articles from all sources immediately on startup
     # so the database isn't empty when the frontend first loads
     run_fetch()
+    start_scheduler(run_fetch)
 
 
 # ─────────────────────────────────────────────────────────────────────

@@ -100,18 +100,25 @@ def get_news(
 #   WHERE tickers LIKE '%AAPL%'
 # This matches "AAPL", "AAPL,TSLA", "GOOGL,AAPL,MSFT" etc.
 # ───────────────────────────────────────────────────────────────────
-@router.get("/news/ticker/{ticker}")
-def get_news_by_ticker(
-    ticker: str,                          # extracted from URL path
+@router.get("/news")
+def get_news(
     limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    q: str = Query(None),   # ← ADD THIS — optional search keyword
     db: Session = Depends(get_db)
 ):
-    articles = db.query(Article)\
-                 .filter(Article.tickers.like(f"%{ticker.upper()}%"))\
-                 .order_by(Article.fetched_at.desc())\
-                 .limit(limit)\
-                 .all()
+    query = db.query(Article)\
+              .filter(Article.sentiment != None)\
+              .order_by(Article.fetched_at.desc())
 
+    # ← ADD THIS BLOCK — if q provided, filter by keyword
+    if q:
+        query = query.filter(
+            Article.title.ilike(f"%{q}%") |
+            Article.description.ilike(f"%{q}%")
+        )
+
+    articles = query.offset(skip).limit(limit).all()
     return [format_article(a) for a in articles]
 
 
