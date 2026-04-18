@@ -279,3 +279,48 @@ def get_ticker_history(ticker: str, db: Session = Depends(get_db)):
         })
 
     return result
+@router.get("/ticker/{ticker}/prices")
+def get_ticker_prices(ticker: str):
+    # ─────────────────────────────────────────────────────────────
+    # Fetches last 7 days of stock price data using yfinance.
+    # yfinance scrapes Yahoo Finance — free, no API key needed.
+    #
+    # Returns daily OHLCV data:
+    # Open, High, Low, Close, Volume for each day
+    # We use "Close" price for the chart overlay.
+    # ─────────────────────────────────────────────────────────────
+    import yfinance as yf
+
+    ticker = ticker.upper()
+
+    # Skip non-stock tickers — indices and crypto use different symbols
+    skip_tickers = {"NIFTY50", "SENSEX", "SPY", "QQQ", "DIA", "BTC", "ETH"}
+    if ticker in skip_tickers:
+        return []
+
+    try:
+        stock = yf.Ticker(ticker)
+
+        # period="7d" → last 7 days
+        # interval="1d" → daily candles
+        hist = stock.history(period="7d", interval="1d")
+
+        if hist.empty:
+            return []
+
+        result = []
+        for date, row in hist.iterrows():
+            result.append({
+                "date":   date.strftime("%Y-%m-%d"),
+                "open":   round(float(row["Open"]), 2),
+                "high":   round(float(row["High"]), 2),
+                "low":    round(float(row["Low"]), 2),
+                "close":  round(float(row["Close"]), 2),
+                "volume": int(row["Volume"])
+            })
+
+        return result
+
+    except Exception as e:
+        print(f"[Prices] Error fetching {ticker}: {e}")
+        return []

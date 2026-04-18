@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getNewsByTicker, getTickerInfo,getTickerHistory } from '../services/api'
+import { getNewsByTicker, getTickerInfo,getTickerHistory,getTickerPrices } from '../services/api'
 import NewsCard from '../components/newscard'
 
 import SentimentChart from '../components/SentimentChart'
@@ -10,6 +10,7 @@ function TickerPage() {
   
   const navigate = useNavigate()
   const[history,setHistory] = useState([])
+  const[prices,setPrices] =useState([])
   const [articles, setArticles]     = useState([])
   const [companyInfo, setCompanyInfo] = useState(null)  // ← NEW
   const [loading, setLoading]       = useState(true)
@@ -51,15 +52,17 @@ function TickerPage() {
       } finally {
         if (!cancelled) setLoading(false)
       }
-    const [newsRes, infoRes, historyRes] = await Promise.all([
+const [newsRes, infoRes, historyRes, pricesRes] = await Promise.all([
     getNewsByTicker(symbol),
     getTickerInfo(symbol),
-    getTickerHistory(symbol)
+    getTickerHistory(symbol),
+    getTickerPrices(symbol)
 ])
 if (!cancelled) {
     setArticles(newsRes.data)
     setCompanyInfo(infoRes.data)
     setHistory(historyRes.data)
+    setPrices(pricesRes.data)
 }
     }
 
@@ -186,7 +189,11 @@ if (!cancelled) {
       </div>
 {/* Sentiment History Chart */}
 <div className="card" style={{ marginBottom: '24px' }}>
-    <SentimentChart data={history} ticker={symbol} />
+    <SentimentChart
+        sentimentData={history}
+        priceData={prices}
+        ticker={symbol}
+    />
 </div>
       {/* ── NEWS ARTICLES ────────────────────────────────────────── */}
       <h2 style={{

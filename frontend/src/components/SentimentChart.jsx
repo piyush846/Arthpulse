@@ -1,22 +1,18 @@
 // SentimentChart.jsx
-// Line chart showing sentiment history for a ticker over time.
-// Uses Recharts — already installed.
+// Dual-axis chart showing sentiment history + stock price overlay.
+//
+// WHY TWO Y-AXES?
+// Sentiment range: -1.0 to +1.0
+// Stock price range: $100 to $500 (completely different scale)
+// Two axes let both lines be visible without one flattening the other.
 
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ReferenceLine, ResponsiveContainer
+  ComposedChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ReferenceLine, ResponsiveContainer, Legend
 } from 'recharts'
 
-// Custom tooltip — shows when hovering over a data point
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) return null
-
-  const score = payload[0].value
-  const color = score > 0.1
-    ? 'var(--accent-green)'
-    : score < -0.1
-    ? 'var(--accent-red)'
-    : 'var(--accent-yellow)'
 
   return (
     <div style={{
@@ -24,22 +20,37 @@ function CustomTooltip({ active, payload, label }) {
       border: '1px solid var(--border)',
       borderRadius: '8px',
       padding: '10px 14px',
+      fontSize: '0.8rem'
     }}>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '4px' }}>
-        {label}
-      </p>
-      <p style={{ color, fontWeight: 700, fontSize: '1rem' }}>
-        {score > 0 ? '+' : ''}{score?.toFixed(4)}
-      </p>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-        {payload[0].payload.article_count} articles
-      </p>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '6px' }}>{label}</p>
+      {payload.map((entry, i) => (
+        <p key={i} style={{ color: entry.color, fontWeight: 600 }}>
+          {entry.name}: {entry.name === 'Sentiment'
+            ? (entry.value > 0 ? '+' : '') + entry.value?.toFixed(4)
+            : '$' + entry.value?.toFixed(2)
+          }
+        </p>
+      ))}
     </div>
   )
 }
 
-function SentimentChart({ data, ticker }) {
-  if (!data || data.length === 0) return (
+function SentimentChart({ sentimentData, priceData, ticker }) {
+  // Merge sentiment and price data by date
+  // Both arrays have "date" field — we join them on that
+  const merged = sentimentData?.map(s => {
+    const pricePoint = priceData?.find(p => p.date === s.date)
+    return {
+      date:          s.date.slice(5),   // "2026-04-17" → "04-17"
+      sentiment:     s.avg_sentiment,
+      price:         pricePoint?.close || null,
+      article_count: s.article_count
+    }
+  }) || []
+
+  const hasPrice = merged.some(d => d.price !== null)
+
+  if (!merged.length) return (
     <div style={{
       textAlign: 'center',
       padding: '40px',
@@ -47,13 +58,11 @@ function SentimentChart({ data, ticker }) {
       fontSize: '0.85rem'
     }}>
       Not enough historical data yet.
-      Check back after a few fetch cycles.
     </div>
   )
 
-  // Color the line based on latest sentiment
-  const latest = data[data.length - 1]?.avg_sentiment || 0
-  const lineColor = latest > 0.1
+  const latest = sentimentData?.[sentimentData.length - 1]?.avg_sentiment || 0
+  const sentimentColor = latest > 0.1
     ? 'var(--accent-green)'
     : latest < -0.1
     ? 'var(--accent-red)'
@@ -69,32 +78,28 @@ function SentimentChart({ data, ticker }) {
         textTransform: 'uppercase',
         marginBottom: '16px'
       }}>
-        Sentiment History — {ticker}
+        Sentiment {hasPrice ? '& Price' : 'History'} — {ticker}
       </h3>
 
-      {/* ResponsiveContainer makes chart fill its parent width */}
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+      <ResponsiveContainer width="100%" height={220}>
+        <ComposedChart data={merged} margin={{ top: 5, right: 40, left: -20, bottom: 5 }}>
 
-          {/* Grid lines */}
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="var(--bg-tertiary)"
             vertical={false}
           />
 
-          {/* X axis — dates */}
           <XAxis
             dataKey="date"
             tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
             axisLine={{ stroke: 'var(--border)' }}
             tickLine={false}
-            // Show only last 4 chars of date (e.g. "4-17" from "2026-04-17")
-            tickFormatter={d => d.slice(5)}
           />
 
-          {/* Y axis — sentiment score */}
+          {/* Left Y axis — sentiment (-1 to +1) */}
           <YAxis
+            yAxisId="sentiment"
             domain={[-1, 1]}
             tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
             axisLine={false}
@@ -102,27 +107,64 @@ function SentimentChart({ data, ticker }) {
             tickFormatter={v => v > 0 ? `+${v}` : v}
           />
 
-          {/* Custom tooltip on hover */}
+          {/* Right Y axis — stock price (auto range) */}
+          {hasPrice && (
+            <YAxis
+              yAxisId="price"
+              orientation="right"
+              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={v => `$${v}`}
+            />
+          )}
+
           <Tooltip content={<CustomTooltip />} />
 
-          {/* Zero line — visual reference for neutral */}
+          <Legend
+            wrapperStyle={{
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              paddingTop: '8px'
+            }}
+          />
+
+          {/* Zero line for sentiment */}
           <ReferenceLine
+            yAxisId="sentiment"
             y={0}
             stroke="var(--text-muted)"
             strokeDasharray="4 4"
             strokeWidth={1}
           />
 
-          {/* The actual sentiment line */}
+          {/* Sentiment line */}
           <Line
+            yAxisId="sentiment"
             type="monotone"
-            dataKey="avg_sentiment"
-            stroke={lineColor}
+            dataKey="sentiment"
+            name="Sentiment"
+            stroke={sentimentColor}
             strokeWidth={2}
-            dot={{ fill: lineColor, r: 4, strokeWidth: 0 }}
-            activeDot={{ r: 6, strokeWidth: 0 }}
+            dot={{ fill: sentimentColor, r: 4, strokeWidth: 0 }}
+            activeDot={{ r: 6 }}
           />
-        </LineChart>
+
+          {/* Price line — only shown if price data exists */}
+          {hasPrice && (
+            <Line
+              yAxisId="price"
+              type="monotone"
+              dataKey="price"
+              name="Price"
+              stroke="var(--accent-blue)"
+              strokeWidth={2}
+              dot={{ fill: 'var(--accent-blue)', r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5 }}
+              strokeDasharray="5 3"
+            />
+          )}
+        </ComposedChart>
       </ResponsiveContainer>
     </div>
   )
