@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getNewsByTicker } from '../services/api'
+import { getNewsByTicker, getTickerInfo,getTickerHistory } from '../services/api'
 import NewsCard from '../components/newscard'
+
+import SentimentChart from '../components/SentimentChart'
 
 function TickerPage() {
   const { symbol } = useParams()
+  
   const navigate = useNavigate()
-
-  const [articles, setArticles] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
+  const[history,setHistory] = useState([])
+  const [articles, setArticles]     = useState([])
+  const [companyInfo, setCompanyInfo] = useState(null)  // ← NEW
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
 
   const avgSentiment = articles.length
     ? articles.reduce((sum, a) => sum + (a.sentiment || 0), 0) / articles.length
@@ -32,18 +36,34 @@ function TickerPage() {
       setLoading(true)
       setError(null)
       try {
-        const res = await getNewsByTicker(symbol)
-        if (!cancelled) setArticles(res.data)
+        // Fetch both news AND company info simultaneously
+        const [newsRes, infoRes] = await Promise.all([
+          getNewsByTicker(symbol),
+          getTickerInfo(symbol)
+        ])
+        if (!cancelled) {
+          setArticles(newsRes.data)
+          setCompanyInfo(infoRes.data)  // ← NEW
+        }
       } catch (err) {
         if (!cancelled) setError('Failed to load ticker news.')
         console.error(err)
       } finally {
         if (!cancelled) setLoading(false)
       }
+    const [newsRes, infoRes, historyRes] = await Promise.all([
+    getNewsByTicker(symbol),
+    getTickerInfo(symbol),
+    getTickerHistory(symbol)
+])
+if (!cancelled) {
+    setArticles(newsRes.data)
+    setCompanyInfo(infoRes.data)
+    setHistory(historyRes.data)
+}
     }
 
     load()
-
     return () => { cancelled = true }
   }, [symbol])
 
@@ -65,6 +85,7 @@ function TickerPage() {
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px' }}>
 
+      {/* Back button */}
       <button
         onClick={() => navigate('/')}
         style={{
@@ -81,6 +102,29 @@ function TickerPage() {
         ← Back to Dashboard
       </button>
 
+{/* Company Info Header */}
+{companyInfo && (
+    <div style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 800 }}>
+                {companyInfo.name}
+            </h1>
+            <span style={{
+                fontSize: '0.75rem',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-secondary)',
+                padding: '3px 10px',
+                borderRadius: '20px'
+            }}>
+                {companyInfo.sector}
+            </span>
+        </div>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            {companyInfo.description}
+        </p>
+    </div>
+)}
+      {/* ── TICKER STATS CARD ────────────────────────────────────── */}
       <div className="card" style={{
         marginBottom: '24px',
         borderLeft: `4px solid ${signal.color}`
@@ -93,14 +137,14 @@ function TickerPage() {
           gap: '12px'
         }}>
           <div>
-            <h1 style={{
-              fontSize: '2rem',
+            <h2 style={{
+              fontSize: '1.4rem',
               fontWeight: 800,
               letterSpacing: '0.05em',
               color: 'var(--text-primary)'
             }}>
               {symbol}
-            </h1>
+            </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               {articles.length} article{articles.length !== 1 ? 's' : ''} tracked
             </p>
@@ -140,7 +184,11 @@ function TickerPage() {
           </div>
         )}
       </div>
-
+{/* Sentiment History Chart */}
+<div className="card" style={{ marginBottom: '24px' }}>
+    <SentimentChart data={history} ticker={symbol} />
+</div>
+      {/* ── NEWS ARTICLES ────────────────────────────────────────── */}
       <h2 style={{
         fontSize: '1rem',
         fontWeight: 700,

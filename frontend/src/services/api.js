@@ -13,3 +13,5 @@ export const getNews       = (limit, skip, q) => api.get('/api/news', { params: 
 export const getTickers    = ()              => api.get('/api/tickers')
 export const getNewsByTicker = (ticker)      => api.get(`/api/ticker/${ticker}`)
 export const triggerFetch  = ()              => api.get('/api/fetch')
+export const getTickerInfo = (ticker) => api.get(`/api/ticker/${ticker}/info`)
+export const getTickerHistory =(ticker)=> api.get(`/api/ticker/${ticker}/history`)
