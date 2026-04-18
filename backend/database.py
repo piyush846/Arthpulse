@@ -24,6 +24,7 @@ class Article(Base):
     sentiment     = Column(Float, nullable=True)
     tickers       = Column(String, nullable=True)
     summary       = Column(Text, nullable=True)
+    momentum      =Column(Float, nullable=True)
 
 def init_db():
     Base.metadata.create_all(bind=engine)

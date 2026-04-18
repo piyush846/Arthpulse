@@ -5,7 +5,8 @@
 
 import { useNavigate } from 'react-router-dom'
 
-function TickerCard({ ticker, avg_sentiment, article_count, signal, latest_title }) {
+
+function TickerCard({ ticker, avg_sentiment, article_count, signal, latest_title, momentum_label, momentum_color }) {
   const navigate = useNavigate()
 
   // Color based on signal
@@ -78,6 +79,17 @@ function TickerCard({ ticker, avg_sentiment, article_count, signal, latest_title
       }}>
         {article_count} article{article_count !== 1 ? 's' : ''}
       </div>
+      {/* Momentum indicator */}
+{momentum_label && (
+    <div style={{
+        fontSize: '0.72rem',
+        fontWeight: 600,
+        color: momentum_color || 'var(--accent-yellow)',
+        marginTop: '4px'
+    }}>
+        {momentum_label}
+    </div>
+)}
 
       {/* Latest headline — truncated to one line */}
       {latest_title && (

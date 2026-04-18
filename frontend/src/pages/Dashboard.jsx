@@ -1,79 +1,99 @@
 // Dashboard.jsx
-// Main page of ArthPulse — the first thing users see.
-//
-// THREE SECTIONS:
-// 1. Stats Bar    — overall market sentiment, article counts
-// 2. Ticker Grid  — all tickers with sentiment signals
-// 3. News Feed    — latest scored articles with search
+// ═══════════════════════════════════════════════════════════════
+// ArthPulse main dashboard — fully featured fintech UI
+// Sections:
+// 1. Header stats bar — market signal, counts, fear/greed
+// 2. Top Movers — most bullish and bearish tickers
+// 3. Sector breakdown — bar chart by sector
+// 4. Trending keywords — topic cloud with sentiment
+// 5. Ticker grid — all tracked tickers
+// 6. News feed — with search and filtering
+// ═══════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react'
-import { getDashboard, getTickers, getNews } from '../services/api'
+import { getDashboard, getTickers, getNews, getSectors, getTrending, getMovers } from '../services/api'
 import TickerCard from '../components/TickerCard'
 import NewsCard from '../components/newscard'
+import { useNavigate } from 'react-router-dom'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Cell
+} from 'recharts'
 
 function Dashboard() {
-  // Three separate state variables — one per API call
+  const navigate = useNavigate()
+
   const [stats, setStats]       = useState(null)
   const [tickers, setTickers]   = useState([])
   const [articles, setArticles] = useState([])
+  const [sectors, setSectors]   = useState([])
+  const [trending, setTrending] = useState([])
+  const [movers, setMovers]     = useState({ bullish: [], bearish: [] })
 
-  // Loading and error states for good UX
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState(null)
-
-  // Search state
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching]     = useState(false)
+  const [activeFilter, setActiveFilter] = useState('ALL')
+  const [lastUpdated, setLastUpdated]   = useState(null)
 
-  // Fetch all data on first render
-  useEffect(() => {
-    fetchAllData()
-  }, [])
+  useEffect(() => { fetchAllData() }, [])
 
   async function fetchAllData() {
     setLoading(true)
     setError(null)
     try {
-      // Run all three API calls simultaneously — faster than sequential
-      // Promise.all waits for ALL three to finish before continuing
-      const [dashRes, tickersRes, newsRes] = await Promise.all([
-        getDashboard(),
-        getTickers(),
-        getNews(20, 0)
-      ])
+      const [dashRes, tickersRes, newsRes, sectorsRes, trendingRes, moversRes] =
+        await Promise.all([
+          getDashboard(),
+          getTickers(),
+          getNews(30, 0),
+          getSectors(),
+          getTrending(),
+          getMovers()
+        ])
       setStats(dashRes.data)
       setTickers(tickersRes.data)
       setArticles(newsRes.data)
+      setSectors(sectorsRes.data)
+      setTrending(trendingRes.data)
+      setMovers(moversRes.data)
+      setLastUpdated(new Date().toLocaleTimeString())
     } catch (err) {
       setError('Failed to load data. Is the backend running?')
-      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
-  // Search handler — calls /api/news?q=keyword
   async function handleSearch(e) {
     e.preventDefault()
     setSearching(true)
     try {
-      const res = await getNews(20, 0, searchQuery)
+      const { getNews } = await import('../services/api')
+      const res = await getNews(30, 0, searchQuery)
       setArticles(res.data)
-    } catch (err) {
-      console.error(err)
     } finally {
       setSearching(false)
     }
   }
 
-  // Clear search — reload all articles
   async function handleClearSearch() {
     setSearchQuery('')
-    const res = await getNews(20, 0)
+    setActiveFilter('ALL')
+    const res = await getNews(30, 0)
     setArticles(res.data)
   }
 
-  // Signal → color mapping for stats bar
+  // Filter articles by sentiment signal
+  function filteredArticles() {
+    if (activeFilter === 'ALL') return articles
+    if (activeFilter === 'POSITIVE') return articles.filter(a => a.sentiment > 0.1)
+    if (activeFilter === 'NEGATIVE') return articles.filter(a => a.sentiment < -0.1)
+    if (activeFilter === 'NEUTRAL')  return articles.filter(a => a.sentiment >= -0.1 && a.sentiment <= 0.1)
+    return articles
+  }
+
   function getSignalColor(signal) {
     if (!signal) return 'var(--accent-yellow)'
     if (signal.includes('BULLISH')) return 'var(--accent-green)'
@@ -81,7 +101,16 @@ function Dashboard() {
     return 'var(--accent-yellow)'
   }
 
-  // ─── LOADING STATE ───────────────────────────────────────────────
+  // Fear/Greed score — 0 to 100 based on overall sentiment
+  function getFearGreed(score) {
+    const value = Math.round(((score + 1) / 2) * 100)
+    if (value >= 75) return { value, label: 'Extreme Greed', color: 'var(--accent-green)' }
+    if (value >= 55) return { value, label: 'Greed',         color: 'var(--accent-green)' }
+    if (value >= 45) return { value, label: 'Neutral',       color: 'var(--accent-yellow)' }
+    if (value >= 25) return { value, label: 'Fear',          color: 'var(--accent-red)' }
+    return                  { value, label: 'Extreme Fear',  color: 'var(--accent-red)' }
+  }
+
   if (loading) return (
     <div style={{ textAlign: 'center', paddingTop: '80px' }}>
       <div className="spinner" />
@@ -91,89 +120,112 @@ function Dashboard() {
     </div>
   )
 
-  // ─── ERROR STATE ──────────────────────────────────────────────────
   if (error) return (
-    <div style={{
-      textAlign: 'center',
-      paddingTop: '80px',
-      color: 'var(--accent-red)'
-    }}>
+    <div style={{ textAlign: 'center', paddingTop: '80px', color: 'var(--accent-red)' }}>
       <p style={{ fontSize: '1.2rem' }}>⚠ {error}</p>
-      <button
-        onClick={fetchAllData}
-        style={{
-          marginTop: '16px',
-          background: 'var(--accent-blue)',
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          padding: '10px 20px',
-          cursor: 'pointer'
-        }}
-      >
-        Retry
-      </button>
+      <button onClick={fetchAllData} style={{
+        marginTop: '16px', background: 'var(--accent-blue)',
+        color: 'white', border: 'none', borderRadius: '8px',
+        padding: '10px 20px', cursor: 'pointer'
+      }}>Retry</button>
     </div>
   )
 
-  // ─── MAIN RENDER ──────────────────────────────────────────────────
+  const fearGreed = stats ? getFearGreed(stats.overall_sentiment) : null
+
   return (
     <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
 
-      {/* ── SECTION 1: STATS BAR ────────────────────────────────── */}
+      {/* ── LAST UPDATED ─────────────────────────────────────── */}
+      {lastUpdated && (
+        <div style={{
+          textAlign: 'right',
+          fontSize: '0.75rem',
+          color: 'var(--text-muted)',
+          marginBottom: '16px'
+        }}>
+          Last updated: {lastUpdated}
+          <button
+            onClick={fetchAllData}
+            style={{
+              marginLeft: '12px',
+              background: 'none',
+              border: '1px solid var(--border)',
+              color: 'var(--text-muted)',
+              borderRadius: '6px',
+              padding: '2px 10px',
+              cursor: 'pointer',
+              fontSize: '0.75rem'
+            }}
+          >
+            ⟳ Refresh
+          </button>
+        </div>
+      )}
+
+      {/* ── SECTION 1: STATS BAR ─────────────────────────────── */}
       {stats && (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '16px',
           marginBottom: '32px'
         }}>
 
-          {/* Overall Signal */}
+          {/* Market Signal */}
           <div className="card" style={{
             borderTop: `3px solid ${getSignalColor(stats.signal)}`
           }}>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.1em' }}>
               MARKET SIGNAL
             </p>
-            <p style={{
-              fontSize: '1.4rem',
-              fontWeight: 800,
-              color: getSignalColor(stats.signal)
-            }}>
+            <p style={{ fontSize: '1.3rem', fontWeight: 800, color: getSignalColor(stats.signal) }}>
               {stats.signal}
             </p>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               Score: {stats.overall_sentiment > 0 ? '+' : ''}{stats.overall_sentiment?.toFixed(3)}
             </p>
           </div>
 
-          {/* Total Articles */}
+          {/* Fear/Greed Meter */}
+          {fearGreed && (
+            <div className="card" style={{ borderTop: `3px solid ${fearGreed.color}` }}>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.1em' }}>
+                FEAR / GREED
+              </p>
+              <p style={{ fontSize: '1.3rem', fontWeight: 800, color: fearGreed.color }}>
+                {fearGreed.value} — {fearGreed.label}
+              </p>
+              {/* Progress bar */}
+              <div style={{
+                marginTop: '8px', height: '4px',
+                background: 'var(--bg-tertiary)', borderRadius: '2px'
+              }}>
+                <div style={{
+                  width: `${fearGreed.value}%`, height: '100%',
+                  background: fearGreed.color, borderRadius: '2px',
+                  transition: 'width 0.5s ease'
+                }} />
+              </div>
+            </div>
+          )}
+
+          {/* Article Stats */}
           <div className="card">
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              TOTAL ARTICLES
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.1em' }}>
+              ARTICLES TODAY
             </p>
-            <p style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+            <p style={{ fontSize: '1.3rem', fontWeight: 800 }}>
               {stats.total_articles}
             </p>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              Across all sources
-            </p>
-          </div>
-
-          {/* Sentiment Breakdown */}
-          <div className="card">
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-              SENTIMENT SPLIT
-            </p>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <span style={{ color: 'var(--accent-green)', fontWeight: 700 }}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-green)' }}>
                 😊 {stats.positive_count}
               </span>
-              <span style={{ color: 'var(--accent-yellow)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-yellow)' }}>
                 😐 {stats.neutral_count}
               </span>
-              <span style={{ color: 'var(--accent-red)', fontWeight: 700 }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--accent-red)' }}>
                 😟 {stats.negative_count}
               </span>
             </div>
@@ -182,25 +234,18 @@ function Dashboard() {
           {/* Most Bullish */}
           {stats.most_bullish && (
             <div className="card" style={{ borderTop: '3px solid var(--accent-green)' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                MOST BULLISH
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.1em' }}>
+                🚀 MOST BULLISH
               </p>
-              <a
-                href={stats.most_bullish.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a href={stats.most_bullish.url} target="_blank" rel="noopener noreferrer"
                 style={{
-                  fontSize: '0.8rem',
-                  color: 'var(--accent-green)',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}
-              >
+                  fontSize: '0.78rem', color: 'var(--accent-green)',
+                  display: '-webkit-box', WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                }}>
                 {stats.most_bullish.title}
               </a>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                 +{stats.most_bullish.sentiment?.toFixed(3)}
               </p>
             </div>
@@ -209,25 +254,18 @@ function Dashboard() {
           {/* Most Bearish */}
           {stats.most_bearish && (
             <div className="card" style={{ borderTop: '3px solid var(--accent-red)' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                MOST BEARISH
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.1em' }}>
+                📉 MOST BEARISH
               </p>
-              <a
-                href={stats.most_bearish.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a href={stats.most_bearish.url} target="_blank" rel="noopener noreferrer"
                 style={{
-                  fontSize: '0.8rem',
-                  color: 'var(--accent-red)',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden'
-                }}
-              >
+                  fontSize: '0.78rem', color: 'var(--accent-red)',
+                  display: '-webkit-box', WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                }}>
                 {stats.most_bearish.title}
               </a>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                 {stats.most_bearish.sentiment?.toFixed(3)}
               </p>
             </div>
@@ -235,121 +273,309 @@ function Dashboard() {
         </div>
       )}
 
-      {/* ── SECTION 2: TICKER GRID ──────────────────────────────── */}
-      <div style={{ marginBottom: '32px' }}>
-        <h2 style={{
-          fontSize: '1rem',
-          fontWeight: 700,
-          color: 'var(--text-secondary)',
-          letterSpacing: '0.1em',
-          textTransform: 'uppercase',
-          marginBottom: '16px'
-        }}>
-          Ticker Signals — {tickers.length} tracked
-        </h2>
+      {/* ── SECTION 2: TOP MOVERS ────────────────────────────── */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '16px',
+        marginBottom: '32px'
+      }}>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap: '12px'
-        }}>
-          {tickers.map(t => (
-            <TickerCard
+        {/* Top Bullish */}
+        <div className="card">
+          <p style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--accent-green)', letterSpacing: '0.1em',
+            marginBottom: '12px'
+          }}>
+            🚀 TOP BULLISH MOVERS
+          </p>
+          {movers.bullish?.map((t, i) => (
+            <div
               key={t.ticker}
-              ticker={t.ticker}
-              avg_sentiment={t.avg_sentiment}
-              article_count={t.article_count}
-              signal={t.signal}
-              latest_title={t.latest_title}
-            />
+              onClick={() => navigate(`/ticker/${t.ticker}`)}
+              style={{
+                display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', padding: '8px 0',
+                borderBottom: i < movers.bullish.length - 1 ? '1px solid var(--border)' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.ticker}</span>
+                <p style={{
+                  fontSize: '0.72rem', color: 'var(--text-muted)',
+                  overflow: 'hidden', whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis', maxWidth: '180px'
+                }}>
+                  {t.latest_title}
+                </p>
+              </div>
+              <span style={{
+                color: 'var(--accent-green)',
+                fontWeight: 700, fontSize: '0.9rem'
+              }}>
+                +{t.avg_sentiment?.toFixed(3)}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Top Bearish */}
+        <div className="card">
+          <p style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--accent-red)', letterSpacing: '0.1em',
+            marginBottom: '12px'
+          }}>
+            📉 TOP BEARISH MOVERS
+          </p>
+          {movers.bearish?.map((t, i) => (
+            <div
+              key={t.ticker}
+              onClick={() => navigate(`/ticker/${t.ticker}`)}
+              style={{
+                display: 'flex', justifyContent: 'space-between',
+                alignItems: 'center', padding: '8px 0',
+                borderBottom: i < movers.bearish.length - 1 ? '1px solid var(--border)' : 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{t.ticker}</span>
+                <p style={{
+                  fontSize: '0.72rem', color: 'var(--text-muted)',
+                  overflow: 'hidden', whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis', maxWidth: '180px'
+                }}>
+                  {t.latest_title}
+                </p>
+              </div>
+              <span style={{
+                color: 'var(--accent-red)',
+                fontWeight: 700, fontSize: '0.9rem'
+              }}>
+                {t.avg_sentiment?.toFixed(3)}
+              </span>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ── SECTION 3: NEWS FEED + SEARCH ───────────────────────── */}
-      <div>
+      {/* ── SECTION 3: SECTOR BREAKDOWN ──────────────────────── */}
+      {sectors.length > 0 && (
+        <div className="card" style={{ marginBottom: '32px' }}>
+          <p style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--text-secondary)', letterSpacing: '0.1em',
+            textTransform: 'uppercase', marginBottom: '16px'
+          }}>
+            📊 Sector Sentiment Breakdown
+          </p>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={sectors} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--bg-tertiary)" vertical={false} />
+              <XAxis
+                dataKey="sector"
+                tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                axisLine={false} tickLine={false}
+              />
+              <YAxis
+                domain={[-1, 1]}
+                tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+                axisLine={false} tickLine={false}
+                tickFormatter={v => v > 0 ? `+${v}` : v}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem'
+                }}
+                formatter={(value) => [
+                  (value > 0 ? '+' : '') + value?.toFixed(4),
+                  'Avg Sentiment'
+                ]}
+              />
+              <Bar dataKey="avg_sentiment" radius={[4, 4, 0, 0]}>
+                {sectors.map((entry, index) => (
+                  <Cell
+                    key={index}
+                    fill={entry.avg_sentiment >= 0
+                      ? 'var(--accent-green)'
+                      : 'var(--accent-red)'
+                    }
+                    opacity={0.8}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* ── SECTION 4: TRENDING KEYWORDS ─────────────────────── */}
+      {trending.length > 0 && (
+        <div className="card" style={{ marginBottom: '32px' }}>
+          <p style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--text-secondary)', letterSpacing: '0.1em',
+            textTransform: 'uppercase', marginBottom: '16px'
+          }}>
+            🔥 Trending Topics
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {trending.map(item => {
+              const color = item.avg_sentiment > 0.1
+                ? 'var(--accent-green)'
+                : item.avg_sentiment < -0.1
+                ? 'var(--accent-red)'
+                : 'var(--accent-yellow)'
+
+              // Size based on count — more mentions = bigger
+              const size = Math.min(1.2, 0.75 + item.count * 0.08)
+
+              return (
+                <span
+                  key={item.keyword}
+                  onClick={() => {
+                    setSearchQuery(item.keyword)
+                    getNews(30, 0, item.keyword).then(res => setArticles(res.data))
+                  }}
+                  style={{
+                    fontSize: `${size}rem`,
+                    color,
+                    background: 'var(--bg-tertiary)',
+                    padding: '4px 12px',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontWeight: item.count > 3 ? 700 : 400,
+                    border: `1px solid ${color}22`,
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {item.keyword}
+                  <span style={{
+                    fontSize: '0.65rem',
+                    color: 'var(--text-muted)',
+                    marginLeft: '4px'
+                  }}>
+                    {item.count}
+                  </span>
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION 5: TICKER GRID ───────────────────────────── */}
+      <div style={{ marginBottom: '32px' }}>
+        <p style={{
+          fontSize: '0.7rem', fontWeight: 700,
+          color: 'var(--text-secondary)', letterSpacing: '0.1em',
+          textTransform: 'uppercase', marginBottom: '16px'
+        }}>
+          📈 Ticker Signals — {tickers.length} tracked
+        </p>
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '16px',
-          flexWrap: 'wrap',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))',
           gap: '12px'
         }}>
-          <h2 style={{
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: 'var(--text-secondary)',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-          }}>
-            News Feed — {articles.length} articles
-          </h2>
+          {tickers.map(t => (
+            <TickerCard
+    key={t.ticker}
+    ticker={t.ticker}
+    avg_sentiment={t.avg_sentiment}
+    article_count={t.article_count}
+    signal={t.signal}
+    latest_title={t.latest_title}
+    momentum_label={t.momentum_label}
+    momentum_color={t.momentum_color}
+/>
+          ))}
+        </div>
+      </div>
 
-          {/* Search bar */}
-          <form
-            onSubmit={handleSearch}
-            style={{ display: 'flex', gap: '8px' }}
-          >
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search articles..."
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border)',
-                borderRadius: '8px',
-                padding: '8px 14px',
-                color: 'var(--text-primary)',
-                fontSize: '0.85rem',
-                width: '220px',
-                outline: 'none'
-              }}
-            />
-            <button
-              type="submit"
-              disabled={searching}
-              style={{
-                background: 'var(--accent-blue)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                cursor: 'pointer',
-                fontSize: '0.85rem',
-                fontWeight: 600
-              }}
-            >
-              {searching ? '...' : 'Search'}
-            </button>
-            {searchQuery && (
+      {/* ── SECTION 6: NEWS FEED ─────────────────────────────── */}
+      <div>
+        {/* Header + search + filters */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', marginBottom: '16px',
+          flexWrap: 'wrap', gap: '12px'
+        }}>
+          <p style={{
+            fontSize: '0.7rem', fontWeight: 700,
+            color: 'var(--text-secondary)', letterSpacing: '0.1em',
+            textTransform: 'uppercase'
+          }}>
+            📰 News Feed — {filteredArticles().length} articles
+          </p>
+
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {/* Sentiment filters */}
+            {['ALL', 'POSITIVE', 'NEUTRAL', 'NEGATIVE'].map(f => (
               <button
-                type="button"
-                onClick={handleClearSearch}
+                key={f}
+                onClick={() => setActiveFilter(f)}
                 style={{
-                  background: 'var(--bg-tertiary)',
-                  color: 'var(--text-secondary)',
-                  border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  fontSize: '0.85rem'
+                  background: activeFilter === f ? 'var(--accent-blue)' : 'var(--bg-tertiary)',
+                  color: activeFilter === f ? 'white' : 'var(--text-muted)',
+                  border: 'none', borderRadius: '6px',
+                  padding: '6px 12px', cursor: 'pointer',
+                  fontSize: '0.75rem', fontWeight: 600
                 }}
               >
-                Clear
+                {f}
               </button>
-            )}
-          </form>
+            ))}
+
+            {/* Search */}
+            <form onSubmit={handleSearch} style={{ display: 'flex', gap: '6px' }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search articles..."
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px', padding: '6px 12px',
+                  color: 'var(--text-primary)', fontSize: '0.82rem',
+                  width: '180px', outline: 'none'
+                }}
+              />
+              <button type="submit" disabled={searching} style={{
+                background: 'var(--accent-blue)', color: 'white',
+                border: 'none', borderRadius: '8px',
+                padding: '6px 14px', cursor: 'pointer',
+                fontSize: '0.82rem', fontWeight: 600
+              }}>
+                {searching ? '...' : '🔍'}
+              </button>
+              {searchQuery && (
+                <button type="button" onClick={handleClearSearch} style={{
+                  background: 'var(--bg-tertiary)', color: 'var(--text-muted)',
+                  border: 'none', borderRadius: '8px',
+                  padding: '6px 12px', cursor: 'pointer', fontSize: '0.82rem'
+                }}>
+                  ✕
+                </button>
+              )}
+            </form>
+          </div>
         </div>
 
-        {/* Articles list */}
-        {articles.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+        {/* Articles */}
+        {filteredArticles().length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
             No articles found.
           </div>
         ) : (
-          articles.map(article => (
+          filteredArticles().map(article => (
             <NewsCard key={article.id} article={article} />
           ))
         )}
