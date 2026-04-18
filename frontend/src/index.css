@@ -1,0 +1,126 @@
+/* index.css
+   ─────────────────────────────────────────────────────────────────
+   GLOBAL STYLES — applies to every component in the app.
+   
+   WHY A DARK THEME?
+   Financial dashboards universally use dark themes:
+   - Bloomberg Terminal → black
+   - TradingView → dark
+   - Binance → dark
+   It reduces eye strain during long market watching sessions
+   and makes colored sentiment indicators pop more visually.
+   ───────────────────────────────────────────────────────────────── */
+
+/* CSS Reset — removes inconsistent browser defaults */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Root variables — change these to retheme the entire app */
+:root {
+  --bg-primary:    #0a0e1a;   /* main background — deep navy */
+  --bg-secondary:  #111827;   /* card background — slightly lighter */
+  --bg-tertiary:   #1f2937;   /* hover states, borders */
+  --accent-blue:   #3b82f6;   /* primary accent — links, buttons */
+  --accent-green:  #10b981;   /* bullish / positive sentiment */
+  --accent-red:    #ef4444;   /* bearish / negative sentiment */
+  --accent-yellow: #f59e0b;   /* neutral / warning */
+  --text-primary:  #f9fafb;   /* main text — near white */
+  --text-secondary:#9ca3af;   /* secondary text — grey */
+  --text-muted:    #6b7280;   /* timestamps, labels */
+  --border:        #1f2937;   /* card borders */
+  --card-shadow:   0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  /* Inter is clean and professional — standard for fintech UIs */
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Smooth scrolling for the whole page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Links — remove default blue underline */
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Scrollbar styling — makes dark theme consistent */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+
+/* Utility classes — reusable across all components */
+
+/* Sentiment color utilities */
+.positive { color: var(--accent-green); }
+.negative { color: var(--accent-red); }
+.neutral  { color: var(--accent-yellow); }
+
+/* Signal badge utilities */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.badge-bullish         { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+.badge-bearish         { background: rgba(239,68,68,0.15);  color: var(--accent-red); }
+.badge-neutral         { background: rgba(245,158,11,0.15); color: var(--accent-yellow); }
+.badge-slightly-bullish { background: rgba(16,185,129,0.1); color: var(--accent-green); }
+.badge-slightly-bearish { background: rgba(239,68,68,0.1);  color: var(--accent-red); }
+
+/* Loading spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--bg-tertiary);
+  border-top-color: var(--accent-blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 40px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Card base style — used by multiple components */
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--accent-blue);
+}

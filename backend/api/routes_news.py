@@ -44,7 +44,7 @@ router = APIRouter()
 # WHY ORDER BY fetched_at DESC?
 # Newest articles first — standard for any news feed.
 # ───────────────────────────────────────────────────────────────────
-@router.get("/news")
+@router.get("/ticker/{ticker}")
 def get_news(
     # Query() adds validation on top of the parameter:
     # ge=1  → must be >= 1 (can't request 0 articles)
