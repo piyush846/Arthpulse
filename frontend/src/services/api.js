@@ -19,3 +19,7 @@ export const getTickerPrices = (ticker) => api.get(`/api/ticker/${ticker}/prices
 export const getSectors  = () => api.get('/api/dashboard/sectors')
 export const getTrending = () => api.get('/api/dashboard/trending')
 export const getMovers   = () => api.get('/api/dashboard/movers')
+export const getNarrative = () => api.get('/api/dashboard/narrative')
+export const getMarketBreadth    = ()       => api.get('/api/market/breadth')
+export const getSentimentTimeline = (period) => api.get('/api/dashboard/timeline', { params: { period } })
+export const getTickerCorrelation = (ticker) => api.get(`/api/ticker/${ticker}/correlation`)

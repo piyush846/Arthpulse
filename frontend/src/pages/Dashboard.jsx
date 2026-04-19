@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react'
-import { getDashboard, getTickers, getNews, getSectors, getTrending, getMovers } from '../services/api'
+import { getDashboard, getTickers, getNews, getSectors, getTrending, getMovers ,getNarrative} from '../services/api'
 import TickerCard from '../components/TickerCard'
 import NewsCard from '../components/newscard'
 import { useNavigate } from 'react-router-dom'
@@ -19,12 +19,15 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
+import MarketNarrative from '../components/MarketNarrative'
+import SentimentTimeline from '../components/SentimentTimeline'
 
 function Dashboard() {
   const navigate = useNavigate()
 
   const [stats, setStats]       = useState(null)
   const [tickers, setTickers]   = useState([])
+  const [narrative, setNarrative] = useState([])
   const [articles, setArticles] = useState([])
   const [sectors, setSectors]   = useState([])
   const [trending, setTrending] = useState([])
@@ -35,7 +38,7 @@ function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching]     = useState(false)
   const [activeFilter, setActiveFilter] = useState('ALL')
-  const [lastUpdated, setLastUpdated]   = useState(null)
+  
 
   useEffect(() => { fetchAllData() }, [])
 
@@ -43,14 +46,15 @@ function Dashboard() {
     setLoading(true)
     setError(null)
     try {
-      const [dashRes, tickersRes, newsRes, sectorsRes, trendingRes, moversRes] =
+      const [dashRes, tickersRes, newsRes, sectorsRes, trendingRes, moversRes,narrativeRes] =
         await Promise.all([
           getDashboard(),
           getTickers(),
           getNews(30, 0),
           getSectors(),
           getTrending(),
-          getMovers()
+          getMovers(),
+          getNarrative()
         ])
       setStats(dashRes.data)
       setTickers(tickersRes.data)
@@ -58,7 +62,8 @@ function Dashboard() {
       setSectors(sectorsRes.data)
       setTrending(trendingRes.data)
       setMovers(moversRes.data)
-      setLastUpdated(new Date().toLocaleTimeString())
+      
+      setNarrative(narrativeRes.data)
     } catch (err) {
       setError('Failed to load data. Is the backend running?')
     } finally {
@@ -134,34 +139,33 @@ function Dashboard() {
   const fearGreed = stats ? getFearGreed(stats.overall_sentiment) : null
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
+  <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
 
-      {/* ── LAST UPDATED ─────────────────────────────────────── */}
-      {lastUpdated && (
-        <div style={{
-          textAlign: 'right',
-          fontSize: '0.75rem',
+    {/* ── MARKET OVERVIEW ─────────────────────────────────── */}
+    <MarketNarrative narrative={narrative} />
+
+    {/* ── TIMELINE & REFRESH ──────────────────────────────── */}
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+      <SentimentTimeline />
+      
+      {/* The Refresh button now lives inside a proper wrapper */}
+      <button
+        onClick={fetchAllData}
+        style={{
+          marginLeft: '12px',
+          background: 'none',
+          border: '1px solid var(--border)',
           color: 'var(--text-muted)',
-          marginBottom: '16px'
-        }}>
-          Last updated: {lastUpdated}
-          <button
-            onClick={fetchAllData}
-            style={{
-              marginLeft: '12px',
-              background: 'none',
-              border: '1px solid var(--border)',
-              color: 'var(--text-muted)',
-              borderRadius: '6px',
-              padding: '2px 10px',
-              cursor: 'pointer',
-              fontSize: '0.75rem'
-            }}
-          >
-            ⟳ Refresh
-          </button>
-        </div>
-      )}
+          borderRadius: '6px',
+          padding: '2px 10px',
+          cursor: 'pointer',
+          fontSize: '0.75rem'
+        }}
+      >
+        ⟳ Refresh
+      </button>
+    </div>
+       {/* Market Narrative — first thing users see */}
 
       {/* ── SECTION 1: STATS BAR ─────────────────────────────── */}
       {stats && (

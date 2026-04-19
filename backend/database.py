@@ -25,6 +25,7 @@ class Article(Base):
     tickers       = Column(String, nullable=True)
     summary       = Column(Text, nullable=True)
     momentum      =Column(Float, nullable=True)
+    image_url      =Column(String, nullable=True)
 
 def init_db():
     Base.metadata.create_all(bind=engine)

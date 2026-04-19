@@ -153,4 +153,5 @@ def format_article(article) -> dict:
         # if tickers is empty string or None, return empty list
         "tickers":      article.tickers.split(",") if article.tickers else [],
         "summary":      article.summary,
+        "image_url":    article.image_url,
     }

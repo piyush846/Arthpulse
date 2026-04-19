@@ -1,47 +1,61 @@
-// TickerCard.jsx
-// Displays a single ticker with aggregated sentiment data.
-// Clicking navigates to the TickerPage for that stock.
-// Used in the ticker grid on the Dashboard.
-
 import { useNavigate } from 'react-router-dom'
-
 
 function TickerCard({ ticker, avg_sentiment, article_count, signal, latest_title, momentum_label, momentum_color }) {
   const navigate = useNavigate()
 
-  // Color based on signal
-  function getSignalColor(signal) {
-    if (signal === 'BULLISH')           return 'var(--accent-green)'
-    if (signal === 'SLIGHTLY BULLISH')  return 'var(--accent-green)'
-    if (signal === 'SLIGHTLY BEARISH')  return 'var(--accent-red)'
-    if (signal === 'BEARISH')           return 'var(--accent-red)'
-    return 'var(--accent-yellow)'  // NEUTRAL
+  function getColors(signal) {
+    if (signal?.includes('BULLISH')) return {
+      border: 'var(--accent-green)',
+      bg: 'rgba(16,185,129,0.05)',
+      score: 'var(--accent-green)'
+    }
+    if (signal?.includes('BEARISH')) return {
+      border: 'var(--accent-red)',
+      bg: 'rgba(239,68,68,0.05)',
+      score: 'var(--accent-red)'
+    }
+    return {
+      border: 'var(--accent-yellow)',
+      bg: 'rgba(245,158,11,0.05)',
+      score: 'var(--accent-yellow)'
+    }
   }
 
-  function getBadgeClass(signal) {
-    if (signal === 'BULLISH')           return 'badge-bullish'
-    if (signal === 'SLIGHTLY BULLISH')  return 'badge-slightly-bullish'
-    if (signal === 'SLIGHTLY BEARISH')  return 'badge-slightly-bearish'
-    if (signal === 'BEARISH')           return 'badge-bearish'
-    return 'badge-neutral'
-  }
+  const colors = getColors(signal)
 
-  const color = getSignalColor(signal)
+  // Shorten signal label for display
+  function shortSignal(s) {
+    if (!s) return 'NEUTRAL'
+    if (s === 'SLIGHTLY BULLISH') return 'SL. BULLISH'
+    if (s === 'SLIGHTLY BEARISH') return 'SL. BEARISH'
+    return s
+  }
 
   return (
     <div
-      className="card"
       onClick={() => navigate(`/ticker/${ticker}`)}
       style={{
+        background: colors.bg,
+        border: `1px solid ${colors.border}33`,
+        borderLeft: `3px solid ${colors.border}`,
+        borderRadius: '10px',
+        padding: '14px',
         cursor: 'pointer',
-        borderLeft: `3px solid ${color}`,  // colored left border = signal at a glance
-        transition: 'transform 0.15s ease, border-color 0.2s ease',
+        transition: 'all 0.15s ease',
+        position: 'relative',
+        overflow: 'hidden'
       }}
-      // Subtle lift on hover
-      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-      onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+      onMouseEnter={e => {
+        e.currentTarget.style.transform = 'translateY(-2px)'
+        e.currentTarget.style.borderColor = colors.border
+        e.currentTarget.style.boxShadow = `0 4px 20px ${colors.border}22`
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = 'none'
+      }}
     >
-      {/* Header — ticker symbol + signal badge */}
+      {/* Header row — ticker + signal on same line */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -49,56 +63,70 @@ function TickerCard({ ticker, avg_sentiment, article_count, signal, latest_title
         marginBottom: '8px'
       }}>
         <span style={{
-          fontSize: '1.1rem',
+          fontSize: '1rem',
           fontWeight: 800,
-          color: 'var(--text-primary)',
-          letterSpacing: '0.05em'
+          letterSpacing: '0.05em',
+          color: 'var(--text-primary)'
         }}>
           {ticker}
         </span>
-        <span className={`badge ${getBadgeClass(signal)}`}>
-          {signal}
+        <span style={{
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          color: colors.border,
+          background: `${colors.border}18`,
+          padding: '2px 7px',
+          borderRadius: '4px',
+          letterSpacing: '0.03em',
+          whiteSpace: 'nowrap'  // ← prevents wrapping
+        }}>
+          {shortSignal(signal)}
         </span>
       </div>
 
-      {/* Sentiment score — big and prominent */}
+      {/* Sentiment score */}
       <div style={{
-        fontSize: '1.6rem',
-        fontWeight: 700,
-        color,
-        marginBottom: '4px'
+        fontSize: '1.5rem',
+        fontWeight: 800,
+        color: colors.score,
+        lineHeight: 1,
+        marginBottom: '6px'
       }}>
         {avg_sentiment > 0 ? '+' : ''}{avg_sentiment?.toFixed(3)}
       </div>
 
-      {/* Article count */}
+      {/* Article count + momentum on same row */}
       <div style={{
-        fontSize: '0.75rem',
-        color: 'var(--text-muted)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: '8px'
       }}>
-        {article_count} article{article_count !== 1 ? 's' : ''}
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+          {article_count} articles
+        </span>
+        {momentum_label && (
+          <span style={{
+            fontSize: '0.68rem',
+            fontWeight: 600,
+            color: momentum_color || 'var(--accent-yellow)'
+          }}>
+            {momentum_label}
+          </span>
+        )}
       </div>
-      {/* Momentum indicator */}
-{momentum_label && (
-    <div style={{
-        fontSize: '0.72rem',
-        fontWeight: 600,
-        color: momentum_color || 'var(--accent-yellow)',
-        marginTop: '4px'
-    }}>
-        {momentum_label}
-    </div>
-)}
 
-      {/* Latest headline — truncated to one line */}
+      {/* Latest headline */}
       {latest_title && (
         <p style={{
-          fontSize: '0.75rem',
-          color: 'var(--text-secondary)',
+          fontSize: '0.72rem',
+          color: 'var(--text-muted)',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',  // "..." when text is too long
+          textOverflow: 'ellipsis',
+          borderTop: `1px solid ${colors.border}22`,
+          paddingTop: '8px',
+          marginTop: '4px'
         }}>
           {latest_title}
         </p>

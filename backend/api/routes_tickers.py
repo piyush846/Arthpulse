@@ -309,3 +309,56 @@ def get_ticker_prices(ticker: str):
     except Exception as e:
         print(f"[Prices] Error fetching {ticker}: {e}")
         return []
+@router.get("/market/breadth")
+def get_market_breadth():
+    # ─────────────────────────────────────────────────────────────
+    # Returns live prices for major market indicators.
+    # Powers the always-visible breadth bar below navbar.
+    # Uses yfinance — free, no API key needed.
+    # ─────────────────────────────────────────────────────────────
+    import yfinance as yf
+
+    SYMBOLS = {
+        "S&P 500":  "^GSPC",
+        "NASDAQ":   "^IXIC",
+        "DOW":      "^DJI",
+        "VIX":      "^VIX",
+        "OIL":      "CL=F",
+        "GOLD":     "GC=F",
+        "BTC":      "BTC-USD",
+    }
+
+    result = []
+    for name, symbol in SYMBOLS.items():
+        try:
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period="2d", interval="1d")
+
+            if hist.empty or len(hist) < 1:
+                continue
+
+            current = float(hist["Close"].iloc[-1])
+
+            # Calculate change
+            if len(hist) >= 2:
+                prev = float(hist["Close"].iloc[-2])
+                change = current - prev
+                change_pct = (change / prev) * 100
+            else:
+                change = 0
+                change_pct = 0
+
+            result.append({
+                "name":       name,
+                "symbol":     symbol,
+                "price":      round(current, 2),
+                "change":     round(change, 2),
+                "change_pct": round(change_pct, 2),
+                "positive":   change >= 0
+            })
+
+        except Exception as e:
+            print(f"[Breadth] Error fetching {symbol}: {e}")
+            continue
+
+    return result    

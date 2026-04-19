@@ -39,7 +39,8 @@ def fetch_newsapi_articles():
                     "content":      item.get("content", ""),
                     "url":          item.get("url", ""),
                     "source":       item.get("source", {}).get("name", ""),
-                    "published_at": parse_date(item.get("publishedAt"))
+                    "published_at": parse_date(item.get("publishedAt")),
+                    "image_url":    item.get("urlToImage", ""),  # ← ADD THIS
                 })
 
         except Exception as e:

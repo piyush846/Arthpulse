@@ -1,20 +1,18 @@
-// Navbar.jsx
-// Top navigation bar — appears on every page.
-// Shows the ArthPulse brand and a manual refresh button.
-
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { triggerFetch } from '../services/api'
 
 function Navbar() {
   const [refreshing, setRefreshing] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState('')
 
-  // Calls /api/fetch on backend — triggers fresh news fetch manually
+ 
+
   async function handleRefresh() {
     setRefreshing(true)
     try {
       await triggerFetch()
-      // Reload page after fetch so new articles appear
+      setLastUpdated(new Date().toLocaleTimeString())
       window.location.reload()
     } catch (err) {
       console.error("Refresh failed:", err)
@@ -34,17 +32,21 @@ function Navbar() {
       justifyContent: 'space-between',
       position: 'sticky',
       top: 0,
-      zIndex: 100,   // stays above all other content
+      zIndex: 100,
     }}>
 
-      {/* Brand — clicking takes you back to dashboard */}
+      {/* Brand */}
       <Link to="/" style={{ textDecoration: 'none' }}>
-        <span style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <span style={{
+          fontSize: '1.3rem',
+          fontWeight: 700,
+          color: 'var(--text-primary)'
+        }}>
           Arth<span style={{ color: 'var(--accent-blue)' }}>Pulse</span>
         </span>
-        <span style={{ 
-          fontSize: '0.7rem', 
-          color: 'var(--text-muted)', 
+        <span style={{
+          fontSize: '0.7rem',
+          color: 'var(--text-muted)',
           marginLeft: '8px',
           letterSpacing: '0.1em'
         }}>
@@ -52,18 +54,29 @@ function Navbar() {
         </span>
       </Link>
 
-      {/* Right side */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Live Market Intelligence
-        </span>
+      {/* Right side — last updated + refresh */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px'
+      }}>
+        {/* Last updated — now in navbar */}
+        {lastUpdated && (
+          <span style={{
+            fontSize: '0.75rem',
+            color: 'var(--text-muted)'
+          }}>
+            Updated: {lastUpdated}
+          </span>
+        )}
 
-        {/* Manual refresh button */}
         <button
           onClick={handleRefresh}
           disabled={refreshing}
           style={{
-            background: refreshing ? 'var(--bg-tertiary)' : 'var(--accent-blue)',
+            background: refreshing
+              ? 'var(--bg-tertiary)'
+              : 'var(--accent-blue)',
             color: 'white',
             border: 'none',
             borderRadius: '8px',

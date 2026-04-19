@@ -220,7 +220,21 @@ def get_trending_keywords(db: Session = Depends(get_db)):
         "that", "as", "up", "out", "about", "after", "before", "into",
         "what", "how", "why", "when", "who", "which", "your", "their",
         "our", "his", "her", "not", "no", "new", "says", "said", "say",
-        "can", "get", "got", "set", "stock", "stocks", "market", "markets"
+        "can", "get", "got", "set", "stock", "stocks", "market", "markets",
+        # Add to STOPWORDS set:
+"here", "these", "more", "best", "target", "strait",
+"partnership", "tobacco", "retirees", "highest", "yahoo",
+"price", "week", "april", "growth", "iran", "hormuz",
+"above", "below", "over", "under", "between", "within",
+"being", "having", "doing", "making", "taking", "going",
+"coming", "looking", "showing", "saying", "telling",
+"where", "there", "their", "every", "other", "another",
+"after", "before", "again", "against", "both", "each",
+"much", "many", "such", "very", "just", "than", "too",
+"most", "next", "last", "long", "little", "own", "right",
+"big", "high", "open", "seem", "put", "well", "also",
+"back", "any", "good", "same", "tell", "does", "off",
+"even", "never", "know", "take", "place", "three", "came"
     }
 
     # Get recent articles — last 50
@@ -243,7 +257,7 @@ def get_trending_keywords(db: Session = Depends(get_db)):
 
     result = []
     for word, scores in word_sentiments.items():
-        if len(scores) >= 2:  # only words appearing 2+ times
+        if len(scores) >= 4:  # only words appearing 2+ times
             avg = round(sum(scores) / len(scores), 4)
             result.append({
                 "keyword":       word,
@@ -299,4 +313,312 @@ def get_top_movers(db: Session = Depends(get_db)):
     return {
         "bullish": all_tickers[:5],   # top 5 most positive
         "bearish": all_tickers[-5:][::-1]  # top 5 most negative
+    }
+@router.get("/dashboard/narrative")
+def get_market_narrative(db: Session = Depends(get_db)):
+    # ─────────────────────────────────────────────────────────────
+    # Synthesizes all news into 3-4 driving themes for today.
+    # This answers: "What's actually moving the market today?"
+    #
+    # Algorithm:
+    # 1. Get trending keywords grouped by theme
+    # 2. Find articles matching each theme
+    # 3. Calculate theme dominance (% of total articles)
+    # 4. Find most impacted sectors per theme
+    # ─────────────────────────────────────────────────────────────
+    import re
+    from collections import defaultdict
+
+    # Theme definitions — keyword clusters that represent market themes
+    THEMES = {
+        "Geopolitical Risk": {
+            "keywords": ["war", "iran", "conflict", "sanctions", "military",
+                        "hormuz", "strait", "tensions", "attack", "nuclear",
+                        "israel", "russia", "ukraine", "china", "tariff", "trade"],
+            "icon": "🌍",
+            "type": "risk"
+        },
+        "Fed & Monetary Policy": {
+            "keywords": ["federal", "reserve", "rates", "inflation", "interest",
+                        "hawkish", "dovish", "cuts", "hike", "powell", "fomc",
+                        "monetary", "policy", "cpi", "gdp"],
+            "icon": "🏦",
+            "type": "macro"
+        },
+        "Earnings & Revenue": {
+            "keywords": ["earnings", "revenue", "profit", "quarterly", "beat",
+                        "miss", "guidance", "forecast", "results", "eps",
+                        "outlook", "estimates", "sales", "income"],
+            "icon": "📊",
+            "type": "earnings"
+        },
+        "Tech & AI": {
+            "keywords": ["artificial", "intelligence", "chip", "semiconductor",
+                        "nvidia", "microsoft", "apple", "google", "cloud",
+                        "technology", "software", "hardware", "data", "model"],
+            "icon": "💻",
+            "type": "sector"
+        },
+        "Energy & Oil": {
+            "keywords": ["oil", "energy", "crude", "opec", "gas", "barrel",
+                        "petroleum", "renewable", "solar", "pipeline"],
+            "icon": "⚡",
+            "type": "sector"
+        },
+        "Banking & Finance": {
+            "keywords": ["bank", "banking", "credit", "loan", "debt", "bond",
+                        "yield", "treasury", "goldman", "jpmorgan", "morgan",
+                        "hedge", "fund", "capital", "assets"],
+            "icon": "💰",
+            "type": "sector"
+        },
+        "Market Volatility": {
+            "keywords": ["crash", "volatile", "selloff", "rally", "rebound",
+                        "correction", "bubble", "panic", "fear", "uncertainty",
+                        "risk", "volatility", "vix"],
+            "icon": "📉",
+            "type": "risk"
+        },
+    }
+
+    # Get recent articles
+    articles = db.query(Article)\
+                 .filter(Article.sentiment != None)\
+                 .order_by(Article.fetched_at.desc())\
+                 .limit(100)\
+                 .all()
+
+    total = len(articles)
+    if total == 0:
+        return []
+
+    # Match articles to themes
+    theme_data = defaultdict(lambda: {
+        "articles": [],
+        "scores": []
+    })
+
+    for article in articles:
+        text = f"{article.title} {article.description or ''}".lower()
+        for theme_name, theme_info in THEMES.items():
+            # Check if any theme keyword appears in article
+            matches = sum(1 for kw in theme_info["keywords"] if kw in text)
+            if matches >= 1:
+                theme_data[theme_name]["articles"].append(article)
+                theme_data[theme_name]["scores"].append(article.sentiment)
+
+    # Build narrative
+    narrative = []
+    for theme_name, data in theme_data.items():
+        if len(data["articles"]) < 2:
+            continue
+
+        scores = data["scores"]
+        avg_sentiment = round(sum(scores) / len(scores), 4)
+        dominance = round(len(data["articles"]) / total * 100, 1)
+        theme_info = THEMES[theme_name]
+
+        # Direction label
+        if avg_sentiment >= 0.3:
+            direction = "BULLISH"
+            direction_color = "green"
+        elif avg_sentiment >= 0.1:
+            direction = "SLIGHTLY BULLISH"
+            direction_color = "green"
+        elif avg_sentiment > -0.1:
+            direction = "NEUTRAL"
+            direction_color = "yellow"
+        elif avg_sentiment > -0.3:
+            direction = "SLIGHTLY BEARISH"
+            direction_color = "red"
+        else:
+            direction = "BEARISH"
+            direction_color = "red"
+
+        narrative.append({
+            "theme":           theme_name,
+            "icon":            theme_info["icon"],
+            "type":            theme_info["type"],
+            "article_count":   len(data["articles"]),
+            "dominance":       dominance,
+            "avg_sentiment":   avg_sentiment,
+            "direction":       direction,
+            "direction_color": direction_color,
+            "top_headline":    data["articles"][0].title if data["articles"] else ""
+        })
+
+    # Sort by dominance — most discussed theme first
+    narrative.sort(key=lambda x: x["dominance"], reverse=True)
+    return narrative[:4]  # top 4 theme
+@router.get("/dashboard/timeline")
+def get_sentiment_timeline(
+    period: str = "7d",  # "1d", "7d", "30d"
+    db: Session = Depends(get_db)
+):
+    # ─────────────────────────────────────────────────────────────
+    # Returns overall market sentiment grouped by date.
+    # period param controls how far back to look:
+    #   1d  → today only (hourly breakdown)
+    #   7d  → last 7 days (daily breakdown)
+    #   30d → last 30 days (daily breakdown)
+    #
+    # Powers the timeline sentiment chart on dashboard.
+    # ─────────────────────────────────────────────────────────────
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+
+    # Calculate cutoff date based on period
+    now = datetime.utcnow()
+    if period == "1d":
+        cutoff = now - timedelta(days=1)
+    elif period == "7d":
+        cutoff = now - timedelta(days=7)
+    elif period == "30d":
+        cutoff = now - timedelta(days=30)
+    else:
+        cutoff = now - timedelta(days=7)
+
+    articles = db.query(Article)\
+                 .filter(Article.sentiment != None)\
+                 .filter(Article.fetched_at >= cutoff)\
+                 .order_by(Article.fetched_at.asc())\
+                 .all()
+
+    if not articles:
+        return []
+
+    # Group by date
+    daily = defaultdict(list)
+    for article in articles:
+        if article.fetched_at:
+            if period == "1d":
+                # Hourly breakdown for today
+                key = article.fetched_at.strftime("%H:00")
+            else:
+                # Daily breakdown for 7d/30d
+                key = article.fetched_at.strftime("%Y-%m-%d")
+            daily[key].append(article.sentiment)
+
+    result = []
+    for date, scores in sorted(daily.items()):
+        positive = sum(1 for s in scores if s > 0.1)
+        negative = sum(1 for s in scores if s < -0.1)
+        neutral  = sum(1 for s in scores if -0.1 <= s <= 0.1)
+        avg      = round(sum(scores) / len(scores), 4)
+
+        result.append({
+            "date":          date,
+            "avg_sentiment": avg,
+            "positive":      positive,
+            "negative":      negative,
+            "neutral":       neutral,
+            "total":         len(scores)
+        })
+
+    return result
+@router.get("/ticker/{ticker}/correlation")
+def get_ticker_correlation(ticker: str, db: Session = Depends(get_db)):
+    # ─────────────────────────────────────────────────────────────
+    # Calculates how well sentiment predicts next-day price movement.
+    #
+    # Method:
+    # For each day we have both sentiment and price data:
+    # - Check if sentiment direction matches next day price direction
+    # - e.g. positive sentiment → price went up next day = match ✅
+    #
+    # Returns correlation score 0-100:
+    # 80-100 = strong predictor
+    # 60-80  = moderate predictor
+    # below 60 = weak predictor
+    # ─────────────────────────────────────────────────────────────
+    import yfinance as yf
+    from collections import defaultdict
+
+    ticker = ticker.upper()
+
+    # Skip non-stock tickers
+    skip = {"NIFTY50", "SENSEX", "SPY", "QQQ", "DIA"}
+    if ticker in skip:
+        return {"correlation": None, "message": "Not applicable for indices"}
+
+    # Get sentiment history
+    articles = db.query(Article)\
+                 .filter(Article.tickers.like(f"%{ticker}%"))\
+                 .filter(Article.sentiment != None)\
+                 .order_by(Article.fetched_at.asc())\
+                 .all()
+
+    if not articles:
+        return {"correlation": None, "message": "No data"}
+
+    # Group sentiment by date
+    daily_sentiment = defaultdict(list)
+    for article in articles:
+        if article.fetched_at:
+            key = article.fetched_at.strftime("%Y-%m-%d")
+            daily_sentiment[key].append(article.sentiment)
+
+    daily_avg = {
+        date: sum(scores) / len(scores)
+        for date, scores in daily_sentiment.items()
+    }
+
+    # Get price history
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period="30d", interval="1d")
+        if hist.empty:
+            return {"correlation": None, "message": "No price data"}
+
+        price_changes = {}
+        dates = list(hist.index)
+        for i in range(len(dates) - 1):
+            date_str = dates[i].strftime("%Y-%m-%d")
+            next_close = float(hist["Close"].iloc[i + 1])
+            curr_close = float(hist["Close"].iloc[i])
+            price_changes[date_str] = next_close - curr_close
+
+    except Exception as e:
+        return {"correlation": None, "message": str(e)}
+
+    # Calculate correlation
+    matches = 0
+    total   = 0
+
+    for date, sentiment in daily_avg.items():
+        if date in price_changes:
+            price_change = price_changes[date]
+            # Check if direction matches
+            sentiment_up = sentiment > 0.05
+            price_up     = price_change > 0
+            if sentiment_up == price_up:
+                matches += 1
+            total += 1
+
+    if total < 2:
+        return {
+            "correlation": None,
+            "message": "Not enough overlapping data yet"
+        }
+
+    score = round((matches / total) * 100, 1)
+
+    # Label
+    if score >= 75:
+        label = "Strong Predictor"
+        color = "green"
+    elif score >= 60:
+        label = "Moderate Predictor"
+        color = "yellow"
+    else:
+        label = "Weak Predictor"
+        color = "red"
+
+    return {
+        "correlation":  score,
+        "matches":      matches,
+        "total":        total,
+        "label":        label,
+        "color":        color,
+        "message":      f"Sentiment correctly predicted price direction {matches}/{total} days"
     }
