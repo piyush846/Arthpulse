@@ -140,7 +140,43 @@ function Dashboard() {
 
   return (
   <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
-
+<div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        borderBottom: '1px solid var(--border)',
+        paddingBottom: '16px'
+      }}>
+        <button
+          style={{
+            background: 'var(--accent-blue)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 24px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '0.9rem'
+          }}
+        >
+          🌍 Global
+        </button>
+        <button
+          onClick={() => navigate('/india')}
+          style={{
+            background: 'var(--bg-tertiary)',
+            color: 'var(--text-muted)',
+            border: 'none',
+            borderRadius: '8px',
+            padding: '10px 24px',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '0.9rem'
+          }}
+        >
+          🇮🇳 India
+        </button>
+      </div>
     {/* ── MARKET OVERVIEW ─────────────────────────────────── */}
     <MarketNarrative narrative={narrative} />
 

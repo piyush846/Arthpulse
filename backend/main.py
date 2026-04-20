@@ -38,6 +38,7 @@ from ingestion.rss_fetcher import fetch_rss_articles
 # store_articles takes the combined list from both fetchers
 # and saves each article to SQLite, skipping duplicates automatically
 from ingestion.store import store_articles
+from api.routes_india import router as india_router
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -75,7 +76,8 @@ app.add_middleware(
 
 app.include_router(news_router, prefix="/api")
 app.include_router(tickers_router, prefix="/api")
-app.include_router(dashboard_router, prefix="/api")# ────────────────────────────────────────────────────────────────────
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(india_router, prefix="/api")# ────────────────────────────────────────────────────────────────────
 # STARTUP EVENT
 # This function runs AUTOMATICALLY once when the server starts.
 # You never need to call it manually.
