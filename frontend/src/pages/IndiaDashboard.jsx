@@ -104,35 +104,49 @@ function IndiaDashboard() {
   )
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '24px' }}>
-        {/* Tab toggle */}
+    <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px' }}>
+      {/* Tab Toggle */}
 <div style={{
-    display: 'flex', gap: '8px',
-    marginBottom: '24px',
-    borderBottom: '1px solid var(--border)',
-    paddingBottom: '16px'
+  display: 'flex',
+  gap: '4px',
+  marginBottom: '24px',
+  background: 'var(--bg-secondary)',
+  border: '1px solid var(--border)',
+  borderRadius: '10px',
+  padding: '4px',
+  width: 'fit-content'
 }}>
-    <button
-        onClick={() => navigate('/')}
-        style={{
-            background: 'var(--bg-tertiary)',
-            color: 'var(--text-muted)',
-            border: 'none', borderRadius: '8px',
-            padding: '10px 24px', cursor: 'pointer',
-            fontWeight: 700, fontSize: '0.9rem'
-        }}
-    >
-        🌍 Global
-    </button>
-    <button style={{
-        background: '#FF9933',  // India saffron color
-        color: 'white',
-        border: 'none', borderRadius: '8px',
-        padding: '10px 24px', cursor: 'pointer',
-        fontWeight: 700, fontSize: '0.9rem'
-    }}>
-        🇮🇳 India
-    </button>
+  <button
+    style={{
+      background: 'var(--accent-blue)',  // active = blue (Global page)
+      color: 'white',
+      border: 'none',
+      borderRadius: '7px',
+      padding: '8px 20px',
+      cursor: 'pointer',
+      fontWeight: 700,
+      fontSize: '0.85rem',
+      transition: 'all 0.15s ease'
+    }}
+  >
+    🌍 Global
+  </button>
+  <button
+    onClick={() => navigate('/india')}
+    style={{
+      background: 'transparent',
+      color: 'var(--text-muted)',
+      border: 'none',
+      borderRadius: '7px',
+      padding: '8px 20px',
+      cursor: 'pointer',
+      fontWeight: 600,
+      fontSize: '0.85rem',
+      transition: 'all 0.15s ease'
+    }}
+  >
+    🇮🇳 India
+  </button>
 </div>
 
       {/* ── INDIA BREADTH BAR ───────────────────────────────── */}

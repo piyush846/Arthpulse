@@ -152,7 +152,7 @@ function SentimentTimeline() {
 <YAxis
     yAxisId="count"
     orientation="right"
-    domain={[0, 'auto']}  // ← ADD THIS — forces 0 as minimum
+    domain={[0, 'datamax']}  // ← ADD THIS — forces 0 as minimum
     tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
     axisLine={false}
     tickLine={false}

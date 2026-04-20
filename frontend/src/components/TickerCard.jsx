@@ -1,7 +1,21 @@
 import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { isInWatchlist, addToWatchlist, removeFromWatchlist } from '../services/watchlist'
 
 function TickerCard({ ticker, avg_sentiment, article_count, signal, latest_title, momentum_label, momentum_color }) {
   const navigate = useNavigate()
+  
+  const [watched, setWatched] = useState(() => isInWatchlist(ticker))
+
+  function toggleWatchlist(e) {
+    e.stopPropagation()  // prevent navigating to ticker page
+    if (watched) {
+      removeFromWatchlist(ticker)
+    } else {
+      addToWatchlist(ticker)
+    }
+    setWatched(!watched)
+  }
 
   function getColors(signal) {
     if (signal?.includes('BULLISH')) return {
