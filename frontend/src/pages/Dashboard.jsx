@@ -145,25 +145,11 @@ function Dashboard() {
     <MarketNarrative narrative={narrative} />
 
     {/* ── TIMELINE & REFRESH ──────────────────────────────── */}
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
+    <div style={{ display: 'flex', width:'100%',alignItems: 'center', marginBottom: '24px' }}>
       <SentimentTimeline />
       
       {/* The Refresh button now lives inside a proper wrapper */}
-      <button
-        onClick={fetchAllData}
-        style={{
-          marginLeft: '12px',
-          background: 'none',
-          border: '1px solid var(--border)',
-          color: 'var(--text-muted)',
-          borderRadius: '6px',
-          padding: '2px 10px',
-          cursor: 'pointer',
-          fontSize: '0.75rem'
-        }}
-      >
-        ⟳ Refresh
-      </button>
+      
     </div>
        {/* Market Narrative — first thing users see */}
 

@@ -1,8 +1,3 @@
-// MarketBreadthBar.jsx
-// Always-visible strip below navbar showing live market indicators.
-// S&P 500, NASDAQ, DOW, VIX, OIL, GOLD, BTC
-// Makes ArthPulse instantly look like a real financial platform.
-
 import { useState, useEffect } from 'react'
 import { getMarketBreadth } from '../services/api'
 
@@ -22,7 +17,6 @@ function MarketBreadthBar() {
       }
     }
     load()
-    // Refresh every 5 minutes
     const interval = setInterval(load, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
@@ -39,62 +33,66 @@ function MarketBreadthBar() {
     <div style={{
       background: 'var(--bg-secondary)',
       borderBottom: '1px solid var(--border)',
-      padding: '0 24px',
+      padding: '0',
       height: '36px',
       display: 'flex',
       alignItems: 'center',
-      gap: '0',
+      width: '100%',
       overflowX: 'auto',
-      scrollbarWidth: 'none',  // hide scrollbar on Firefox
+      scrollbarWidth: 'none',
     }}>
-      {data.map((item, i) => (
-        <div
-          key={item.name}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '0 16px',
-            borderRight: i < data.length - 1
-              ? '1px solid var(--border)'
-              : 'none',
-            whiteSpace: 'nowrap',
-            flexShrink: 0
-          }}
-        >
-          {/* Name */}
-          <span style={{
-            fontSize: '0.72rem',
-            color: 'var(--text-muted)',
-            fontWeight: 600,
-            letterSpacing: '0.05em'
-          }}>
-            {item.name}
-          </span>
-
-          {/* Price */}
-          <span style={{
-            fontSize: '0.78rem',
-            fontWeight: 700,
-            color: 'var(--text-primary)'
-          }}>
-            {item.price > 1000
-              ? item.price.toLocaleString()
-              : item.price.toFixed(2)}
-          </span>
-
-          {/* Change */}
-          <span style={{
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            color: item.positive
-              ? 'var(--accent-green)'
-              : 'var(--accent-red)'
-          }}>
-            {item.positive ? '▲' : '▼'} {Math.abs(item.change_pct).toFixed(2)}%
-          </span>
-        </div>
-      ))}
+      {/* Scrolling ticker tape */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        justifyContent: 'space-between',  // spread evenly across full width
+        padding: '0 24px',
+      }}>
+        {data.map((item, i) => (
+          <div
+            key={item.name}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              padding: '0 12px',
+              borderRight: i < data.length - 1
+                ? '1px solid var(--border)'
+                : 'none',
+            }}
+          >
+            <span style={{
+              fontSize: '0.7rem',
+              color: 'var(--text-muted)',
+              fontWeight: 600,
+              letterSpacing: '0.05em'
+            }}>
+              {item.name}
+            </span>
+            <span style={{
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              color: 'var(--text-primary)'
+            }}>
+              {item.price > 1000
+                ? item.price.toLocaleString()
+                : item.price.toFixed(2)}
+            </span>
+            <span style={{
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              color: item.positive
+                ? 'var(--accent-green)'
+                : 'var(--accent-red)'
+            }}>
+              {item.positive ? '▲' : '▼'} {Math.abs(item.change_pct).toFixed(2)}%
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

@@ -60,7 +60,7 @@ function SentimentTimeline() {
   ]
 
   return (
-    <div className="card" style={{ marginBottom: '32px' }}>
+    <div className="card" style={{ marginBottom: '32px',width:'100%' }}>
 
       {/* Header + period toggle */}
       <div style={{

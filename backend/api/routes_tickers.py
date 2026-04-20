@@ -320,12 +320,17 @@ def get_market_breadth():
 
     SYMBOLS = {
         "S&P 500":  "^GSPC",
-        "NASDAQ":   "^IXIC",
-        "DOW":      "^DJI",
-        "VIX":      "^VIX",
-        "OIL":      "CL=F",
-        "GOLD":     "GC=F",
-        "BTC":      "BTC-USD",
+    "NASDAQ":   "^IXIC",
+    "DOW":      "^DJI",
+    "NIFTY 50": "^NSEI",    # ← ADD Indian market
+    "SENSEX":   "^BSESN",   # ← ADD Indian market
+    "VIX":      "^VIX",
+    "OIL":      "USO",
+    "GOLD":     "GC=F",
+    "SILVER":   "SI=F",     # ← ADD
+    "BTC":      "BTC-USD",
+    "EUR/USD":  "EURUSD=X", # ← ADD forex
+    "USD/INR":  "INR=X",
     }
 
     result = []
