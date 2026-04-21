@@ -7,6 +7,7 @@ import { getIndiaBreadth, getIndiaTickers, getIndiaNews, getIndiaMovers, getIndi
 import NewsCard from '../components/newscard'
 import MarketNarrative from '../components/MarketNarrative'
 import { useNavigate } from 'react-router-dom'
+import TabToggle from '../components/TabToggle'
 
 function IndiaDashboard() {
   const navigate = useNavigate()
@@ -106,48 +107,7 @@ function IndiaDashboard() {
   return (
     <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px' }}>
       {/* Tab Toggle */}
-<div style={{
-  display: 'flex',
-  gap: '4px',
-  marginBottom: '24px',
-  background: 'var(--bg-secondary)',
-  border: '1px solid var(--border)',
-  borderRadius: '10px',
-  padding: '4px',
-  width: 'fit-content'
-}}>
-  <button
-    style={{
-      background: 'var(--accent-blue)',  // active = blue (Global page)
-      color: 'white',
-      border: 'none',
-      borderRadius: '7px',
-      padding: '8px 20px',
-      cursor: 'pointer',
-      fontWeight: 700,
-      fontSize: '0.85rem',
-      transition: 'all 0.15s ease'
-    }}
-  >
-    🌍 Global
-  </button>
-  <button
-    onClick={() => navigate('/india')}
-    style={{
-      background: 'transparent',
-      color: 'var(--text-muted)',
-      border: 'none',
-      borderRadius: '7px',
-      padding: '8px 20px',
-      cursor: 'pointer',
-      fontWeight: 600,
-      fontSize: '0.85rem',
-      transition: 'all 0.15s ease'
-    }}
-  >
-    🇮🇳 India
-  </button>
-</div>
+    <TabToggle/>
 
       {/* ── INDIA BREADTH BAR ───────────────────────────────── */}
       {breadth.length > 0 && (
@@ -460,7 +420,7 @@ function IndiaDashboard() {
             color: 'var(--text-muted)'
           }}>  No India-specific articles found yet</div>):(
           filteredArticles().map(article =>(
-          <newscard key ={article.id} article={article}/>
+          <NewsCard key ={article.id} article={article}/>
           ))
           )}
       </div>   {/* End of news section */}

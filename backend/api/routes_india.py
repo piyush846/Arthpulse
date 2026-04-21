@@ -270,10 +270,6 @@ def get_india_news(
     q: str = None,
     db: Session = Depends(get_db)
 ):
-    # Returns news articles relevant to Indian markets
-    # Filters by Indian keywords OR Indian ticker mentions
-    from sqlalchemy import or_
-
     query = db.query(Article)\
               .filter(Article.sentiment != None)
 
@@ -283,17 +279,39 @@ def get_india_news(
             Article.description.ilike(f"%{q}%")
         )
     else:
-        # Build India filter — articles mentioning India keywords
-        # OR articles with Indian tickers
-        india_ticker_filter = or_(
-            *[Article.tickers.like(f"%{t}%") for t in INDIA_TICKER_SYMBOLS]
+        # Simple keyword filter — check title for India-related terms
+        # Using simple LIKE instead of massive OR chain
+        india_filter = (
+            Article.title.ilike("%india%") |
+            Article.title.ilike("%nifty%") |
+            Article.title.ilike("%sensex%") |
+            Article.title.ilike("%rupee%") |
+            Article.title.ilike("%rbi%") |
+            Article.title.ilike("%sebi%") |
+            Article.title.ilike("%tcs%") |
+            Article.title.ilike("%infosys%") |
+            Article.title.ilike("%reliance%") |
+            Article.title.ilike("%wipro%") |
+            Article.title.ilike("%hdfc%") |
+            Article.title.ilike("%icici%") |
+            Article.title.ilike("%adani%") |
+            Article.title.ilike("%tata%") |
+            Article.title.ilike("%bajaj%") |
+            Article.title.ilike("%maruti%") |
+            Article.title.ilike("%zomato%") |
+            Article.title.ilike("%paytm%") |
+            Article.title.ilike("%airtel%") |
+            Article.title.ilike("%bse%") |
+            Article.title.ilike("%nse%") |
+            Article.tickers.ilike("%TCS%") |
+            Article.tickers.ilike("%INFY%") |
+            Article.tickers.ilike("%RELIANCE%") |
+            Article.tickers.ilike("%HDFCBANK%") |
+            Article.tickers.ilike("%ICICIBANK%") |
+            Article.tickers.ilike("%NIFTY50%") |
+            Article.tickers.ilike("%SENSEX%")
         )
-        india_keyword_filter = or_(
-            *[Article.title.ilike(f"%{kw}%") for kw in INDIA_KEYWORDS]
-        )
-        query = query.filter(
-            india_ticker_filter | india_keyword_filter
-        )
+        query = query.filter(india_filter)
 
     articles = query\
         .order_by(Article.fetched_at.desc())\

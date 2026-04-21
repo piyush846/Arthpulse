@@ -10,10 +10,10 @@ function App() {
       <Navbar />
       <MarketBreadthBar />
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/ticker/:symbol" element={<TickerPage />} />
-        <Route path="/india" element={<IndiaDashboard />} />
-      </Routes>
+  <Route path="/"               element={<Dashboard key="global" />} />
+  <Route path="/india"          element={<IndiaDashboard key="india" />} />
+  <Route path="/ticker/:symbol" element={<TickerPage />} />
+</Routes>
     </div>
   )
 }
