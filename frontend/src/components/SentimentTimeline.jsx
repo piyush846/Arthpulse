@@ -34,8 +34,8 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 function SentimentTimeline() {
-  const [data, setData]     = useState([])
-  const [period, setPeriod] = useState('7d')
+  const [data, setData]       = useState([])
+  const [period, setPeriod]   = useState('7d')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -59,8 +59,24 @@ function SentimentTimeline() {
     { label: '30 Days', value: '30d' },
   ]
 
+  // Calculate summary stats from current period data
+  const avgSentiment = data.length
+    ? data.reduce((s, d) => s + d.avg_sentiment, 0) / data.length
+    : 0
+
+  const avgColor = avgSentiment > 0.1
+    ? 'var(--accent-green)'
+    : avgSentiment < -0.1
+    ? 'var(--accent-red)'
+    : 'var(--accent-yellow)'
+
+  const totalArticles  = data.reduce((s, d) => s + d.total, 0)
+  const positivePeriods = data.filter(d => d.avg_sentiment > 0.05).length
+  const negativePeriods = data.filter(d => d.avg_sentiment < -0.05).length
+  const periodLabel     = period === '1d' ? 'HOURS' : 'DAYS'
+
   return (
-    <div className="card" style={{ marginBottom: '32px',width:'100%' }}>
+    <div className="card" style={{ marginBottom: '32px', width: '100%' }}>
 
       {/* Header + period toggle */}
       <div style={{
@@ -82,11 +98,13 @@ function SentimentTimeline() {
             📈 Market Sentiment Timeline
           </p>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            How market mood has shifted over time
+            {period === '1d' ? "Today's hourly sentiment breakdown"
+              : period === '7d' ? 'How market mood shifted over last 7 days'
+              : 'How market mood shifted over last 30 days'}
           </p>
         </div>
 
-        {/* Period buttons */}
+        {/* Period toggle buttons */}
         <div style={{ display: 'flex', gap: '6px' }}>
           {periods.map(p => (
             <button
@@ -128,7 +146,7 @@ function SentimentTimeline() {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={240}>
-          <ComposedChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+          <ComposedChart data={data} margin={{ top: 5, right: 40, left: -20, bottom: 5 }}>
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="var(--bg-tertiary)"
@@ -140,23 +158,24 @@ function SentimentTimeline() {
               axisLine={false}
               tickLine={false}
             />
+            {/* Left Y axis — sentiment score */}
             <YAxis
               yAxisId="sentiment"
               domain={[-1, 1]}
               tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={v => v > 0 ? `+${v}` : v}
+              tickFormatter={v => v > 0 ? `+${v}` : `${v}`}
             />
-            {/* Fix Y axis for article count — always starts at 0 */}
-<YAxis
-    yAxisId="count"
-    orientation="right"
-    domain={[0, 'datamax']}  // ← ADD THIS — forces 0 as minimum
-    tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
-    axisLine={false}
-    tickLine={false}
-/>
+            {/* Right Y axis — article count, always starts at 0 */}
+            <YAxis
+              yAxisId="count"
+              orientation="right"
+              domain={[0, 'dataMax']}
+              tick={{ fill: 'var(--text-muted)', fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+            />
             <Tooltip content={<CustomTooltip />} />
             <Legend
               wrapperStyle={{
@@ -166,7 +185,7 @@ function SentimentTimeline() {
               }}
             />
 
-            {/* Article count bars */}
+            {/* Article count bars — right axis */}
             <Bar
               yAxisId="count"
               dataKey="total"
@@ -184,7 +203,7 @@ function SentimentTimeline() {
               strokeDasharray="4 4"
             />
 
-            {/* Sentiment line */}
+            {/* Sentiment line — left axis */}
             <Line
               yAxisId="sentiment"
               type="monotone"
@@ -199,7 +218,7 @@ function SentimentTimeline() {
         </ResponsiveContainer>
       )}
 
-      {/* Summary stats below chart */}
+      {/* Summary stats — all calculated from current period data */}
       {data.length > 0 && (
         <div style={{
           display: 'flex',
@@ -207,43 +226,51 @@ function SentimentTimeline() {
           marginTop: '16px',
           paddingTop: '16px',
           borderTop: '1px solid var(--border)',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          alignItems: 'center'
         }}>
+          {/* Period label */}
+          <span style={{
+            fontSize: '0.68rem',
+            color: 'var(--accent-blue)',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            background: 'rgba(59,130,246,0.1)',
+            padding: '3px 10px',
+            borderRadius: '4px'
+          }}>
+            {period === '1d' ? "TODAY" : period === '7d' ? "LAST 7 DAYS" : "LAST 30 DAYS"}
+          </span>
+
           <div>
             <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>AVG SENTIMENT</p>
-            <p style={{
-              fontSize: '1rem', fontWeight: 700,
-              color: (() => {
-                const avg = data.reduce((s, d) => s + d.avg_sentiment, 0) / data.length
-                return avg > 0.1
-                  ? 'var(--accent-green)'
-                  : avg < -0.1
-                  ? 'var(--accent-red)'
-                  : 'var(--accent-yellow)'
-              })()
-            }}>
-              {(() => {
-                const avg = data.reduce((s, d) => s + d.avg_sentiment, 0) / data.length
-                return (avg > 0 ? '+' : '') + avg.toFixed(4)
-              })()}
+            <p style={{ fontSize: '1rem', fontWeight: 700, color: avgColor }}>
+              {avgSentiment > 0 ? '+' : ''}{avgSentiment.toFixed(4)}
             </p>
           </div>
+
           <div>
             <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>TOTAL ARTICLES</p>
             <p style={{ fontSize: '1rem', fontWeight: 700 }}>
-              {data.reduce((s, d) => s + d.total, 0)}
+              {totalArticles}
             </p>
           </div>
+
           <div>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>POSITIVE DAYS</p>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              POSITIVE {periodLabel}
+            </p>
             <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-green)' }}>
-              {data.filter(d => d.avg_sentiment > 0.1).length}
+              {positivePeriods}
             </p>
           </div>
+
           <div>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>NEGATIVE DAYS</p>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+              NEGATIVE {periodLabel}
+            </p>
             <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent-red)' }}>
-              {data.filter(d => d.avg_sentiment < -0.1).length}
+              {negativePeriods}
             </p>
           </div>
         </div>

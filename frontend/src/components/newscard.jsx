@@ -1,5 +1,6 @@
 import SentimentBar from './SentimentBar'
 import { Link } from 'react-router-dom'
+import { useWindowSize } from '../hooks/useWindowSize'
 
 function NewsCard({ article }) {
   const {
@@ -8,6 +9,8 @@ function NewsCard({ article }) {
     summary, image_url
   } = article
 
+  const { isMobile } = useWindowSize()
+
   function formatDate(dateStr) {
     if (!dateStr) return ''
     try {
@@ -15,7 +18,9 @@ function NewsCard({ article }) {
         month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit'
       })
-    } catch { return '' }
+    } catch {
+      return ''
+    }
   }
 
   function getSignalClass(score) {
@@ -40,12 +45,13 @@ function NewsCard({ article }) {
     <div className="card" style={{
       marginBottom: '12px',
       display: 'flex',
+      flexDirection: isMobile ? 'column' : 'row',
       gap: '16px',
       alignItems: 'flex-start'
     }}>
 
-      {/* Article image */}
-      {image_url && (
+      {/* Article image — only on desktop */}
+      {image_url && !isMobile && (
         <a
           href={url}
           target="_blank"
@@ -70,7 +76,7 @@ function NewsCard({ article }) {
       {/* Content */}
       <div style={{ flex: 1, minWidth: 0 }}>
 
-        {/* Header */}
+        {/* Header — source + date + badge */}
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -102,12 +108,13 @@ function NewsCard({ article }) {
           target="_blank"
           rel="noopener noreferrer"
           style={{
-            fontSize: '0.92rem',
+            fontSize: isMobile ? '0.88rem' : '0.92rem',
             fontWeight: 600,
             color: 'var(--text-primary)',
             lineHeight: '1.4',
             display: 'block',
-            marginBottom: '6px'
+            marginBottom: '6px',
+            textDecoration: 'none'
           }}
         >
           {title}

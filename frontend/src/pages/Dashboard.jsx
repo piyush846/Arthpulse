@@ -147,25 +147,13 @@ setTriggeredAlerts(triggered)
   <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px' }}>
 {/* Tab Toggle */}
 <TabToggle/>
-{/* Watchlist */}
-<Watchlist allTickers={tickers} />
 
-{/* Alerts Panel */}
-<AlertsPanel
-    allTickers={tickers}
-    triggeredAlerts={triggeredAlerts}
-/>
+
+
     {/* ── MARKET OVERVIEW ─────────────────────────────────── */}
-    <MarketNarrative narrative={narrative} />
 
-    {/* ── TIMELINE & REFRESH ──────────────────────────────── */}
-    <div style={{ display: 'flex', width:'100%',alignItems: 'center', marginBottom: '24px' }}>
-      <SentimentTimeline />
-      
-      {/* The Refresh button now lives inside a proper wrapper */}
-      
-    </div>
-       {/* Market Narrative — first thing users see */}
+
+ 
 
       {/* ── SECTION 1: STATS BAR ─────────────────────────────── */}
       {stats && (
@@ -365,6 +353,14 @@ setTriggeredAlerts(triggered)
           ))}
         </div>
       </div>
+         {/* ── TIMELINE & REFRESH ──────────────────────────────── */}
+    <div style={{ display: 'flex', width:'100%',alignItems: 'center', marginBottom: '24px' }}>
+      <SentimentTimeline />
+      
+      {/* The Refresh button now lives inside a proper wrapper */}
+      
+    </div>
+       {/* Market Narrative — first thing users see */}
 
       {/* ── SECTION 3: SECTOR BREAKDOWN ──────────────────────── */}
       {sectors.length > 0 && (
@@ -474,6 +470,14 @@ setTriggeredAlerts(triggered)
         </div>
       )}
 
+      {/* Watchlist */}
+{tickers.length>0 && <Watchlist allTickers={tickers} />}
+
+{/* Alerts Panel */}
+<AlertsPanel
+    allTickers={tickers}
+    triggeredAlerts={triggeredAlerts}
+/>
       {/* ── SECTION 5: TICKER GRID ───────────────────────────── */}
       <div style={{ marginBottom: '32px' }}>
         <p style={{

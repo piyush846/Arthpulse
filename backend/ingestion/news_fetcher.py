@@ -10,7 +10,18 @@ FINANCE_QUERIES = [
     "economy",
     "Federal Reserve",
     "inflation",
-    "earnings"
+    "earnings",
+
+     "India stock market",
+    "Nifty Sensex",
+    "BSE NSE India",
+    "RBI monetary policy",
+    "Indian economy GDP",
+    "TCS Infosys Wipro",
+    "Reliance Industries",
+    "HDFC ICICI SBI bank",
+    "Adani Tata Bajaj",
+    "India IPO"
 ]
 
 def fetch_newsapi_articles():

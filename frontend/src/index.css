@@ -124,3 +124,22 @@ a:hover {
 .card:hover {
   border-color: var(--accent-blue);
 }
+/* ── MOBILE RESPONSIVE ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Reduce padding on mobile */
+  body {
+    font-size: 14px;
+  }
+
+  /* Cards get less padding */
+  .card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  /* Hide scrollbar on breadth bar */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}

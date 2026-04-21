@@ -51,21 +51,34 @@ router = APIRouter()
 #   "signal": "SLIGHTLY BEARISH"
 # }
 # ───────────────────────────────────────────────────────────────────
+
 @router.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)):
+    from datetime import datetime
 
-    # Total count — includes unscored articles too
-    # Shows how much data ArthPulse has collected overall
+    # Total count
     total = db.query(Article).count()
 
-    # Only scored articles are useful for sentiment analysis
+    # TODAY's articles only for sentiment calculations
+    today_start = datetime.utcnow().replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    # Try today first
     scored = db.query(Article)\
                .filter(Article.sentiment != None)\
+               .filter(Article.fetched_at >= today_start)\
                .all()
 
-    # Guard clause — if no scored articles yet, return safe defaults
-    # This prevents division by zero and missing data errors
-    # Happens only on very first startup before engines run
+    # Fallback to last 24 hours if today has no data yet
+    if len(scored) < 10:
+        from datetime import timedelta
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        scored = db.query(Article)\
+                   .filter(Article.sentiment != None)\
+                   .filter(Article.fetched_at >= cutoff)\
+                   .all()
+
     if not scored:
         return {
             "total_articles":    total,
@@ -78,25 +91,13 @@ def get_dashboard(db: Session = Depends(get_db)):
             "signal":            "NEUTRAL"
         }
 
-    # Extract just the scores into a plain list for easy math
-    # [0.89, -0.72, 0.0, -0.95, 0.63, ...]
     scores = [a.sentiment for a in scored]
-
-    # Overall market sentiment = average of all article scores
-    # If most articles are negative → overall goes negative
-    # This is your "market mood" number
     overall = round(sum(scores) / len(scores), 4)
 
-    # Count how many articles fall into each category
-    # Thresholds: > 0.1 = positive, < -0.1 = negative, else neutral
-    # We use 0.1 not 0 because scores near 0 are essentially neutral
     positive = sum(1 for s in scores if s > 0.1)
     negative = sum(1 for s in scores if s < -0.1)
     neutral  = sum(1 for s in scores if -0.1 <= s <= 0.1)
 
-    # max() with key=lambda finds the article with highest sentiment
-    # min() with key=lambda finds the article with lowest sentiment
-    # These are the headline stories to feature on the dashboard
     most_bullish = max(scored, key=lambda a: a.sentiment)
     most_bearish = min(scored, key=lambda a: a.sentiment)
 
@@ -470,7 +471,7 @@ def get_sentiment_timeline(
     # Calculate cutoff date based on period
     now = datetime.utcnow()
     if period == "1d":
-        cutoff = now - timedelta(days=1)
+         cutoff = now.replace(hour=0, minute=0, second=0, microsecond=0)
     elif period == "7d":
         cutoff = now - timedelta(days=7)
     elif period == "30d":

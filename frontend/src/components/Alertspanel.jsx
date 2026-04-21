@@ -11,6 +11,7 @@ function AlertsPanel({ allTickers, triggeredAlerts }) {
   const [ticker, setTicker]       = useState('')
   const [condition, setCondition] = useState('below')
   const [value, setValue]         = useState(-0.5)
+  
 
   
   function handleAdd() {
