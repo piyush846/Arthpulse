@@ -10,6 +10,6 @@ ANTHROPIC_API_KEY        = os.getenv("ANTHROPIC_API_KEY", "")
 
 # CORS — allow both local dev and deployed frontend
 ALLOWED_ORIGINS = os.getenv(
-    "https://arthpulse-z3gm.vercel.app/",
+    "ALLOWED_ORIGINS",
     "http://localhost:3000,http://localhost:5173"
 ).split(",")
