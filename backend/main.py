@@ -41,6 +41,7 @@ from ingestion.store import store_articles
 from api.routes_india import router as india_router
 
 from config import ALLOWED_ORIGINS
+import os
 # ─────────────────────────────────────────────────────────────────────
 # CREATE THE FASTAPI APP INSTANCE
 # Think of "app" like the main object that represents your entire server.
@@ -94,16 +95,18 @@ app.include_router(india_router, prefix="/api")# ──────────�
 @app.on_event("startup")
 def startup():
     print("[ArthPulse] Initializing database...")
-    
-    # Creates the "articles" table in SQLite if it doesn't exist yet.
-    # If table already exists, this does nothing — safe to call every time.
     init_db()
     
-    print("[ArthPulse] Running initial news fetch...")
+    # Only run fetch on startup in development
+    # In production (Render) skip startup fetch to save RAM
+    # Scheduler will run after 30 mins
+    if os.getenv("ENVIRONMENT") != "production":
+        print("[ArthPulse] Running initial news fetch...")
+        run_fetch()
+    else:
+        print("[ArthPulse] Production mode — skipping startup fetch")
+        print("[ArthPulse] Scheduler will run in 30 mins")
     
-    # Fetch articles from all sources immediately on startup
-    # so the database isn't empty when the frontend first loads
-    run_fetch()
     start_scheduler(run_fetch)
 
 
@@ -207,3 +210,7 @@ def get_news(
     # FastAPI automatically converts this list of Article objects to JSON
     # You don't need json.dumps() or jsonify() — FastAPI handles it
     return articles
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 10000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

@@ -26,9 +26,7 @@ COPY . .
 # Create directory for database
 RUN mkdir -p /app/data
 
-# Expose port 7860 — Hugging Face standard port
+
 # Render uses this too
 EXPOSE 10000
-
-# Start the server
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000", "--workers", "1"]
