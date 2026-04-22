@@ -18,9 +18,8 @@ def get_finbert():
     if _finbert is None:
         print("[Sentiment] Loading FinBERT model...")
         _finbert = pipeline(
-            "sentiment-analysis",
-            model="ProsusAI/finbert",
-            tokenizer="ProsusAI/finbert"
+            "text-classification",
+    model="AdityaAI9/distilbert_finance_sentiment_analysis"
         )
         print("[Sentiment] FinBERT model loaded ✅")
     return _finbert
