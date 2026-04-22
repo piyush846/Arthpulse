@@ -2,10 +2,10 @@
 // Lets users set sentiment alerts for tickers.
 // "Alert me when AAPL sentiment drops below -0.5"
 
-import { useState, useEffect } from 'react'
+import { useState,  } from 'react'
 import { getAlerts, addAlert, removeAlert } from '../services/watchlist'
 
-function AlertsPanel({ allTickers, triggeredAlerts }) {
+function AlertsPanel({  triggeredAlerts }) {
   const [alerts, setAlerts] = useState(() => getAlerts())
   const [showForm, setShowForm]   = useState(false)
   const [ticker, setTicker]       = useState('')
