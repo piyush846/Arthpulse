@@ -10,7 +10,7 @@ __pycache__/
 venv/
 
 # Database
-*.db
+*.db-journal
 
 # Node modules
 frontend/node_modules/

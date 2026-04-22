@@ -1,13 +1,15 @@
 import feedparser
-from datetime import datetime
 import re
+from datetime import datetime
+
 RSS_FEEDS = {
+    # Global sources
     "Yahoo Finance":        "https://finance.yahoo.com/news/rssindex",
     "Google News Finance":  "https://news.google.com/rss/search?q=stock+market+finance&hl=en-US&gl=US&ceid=US:en",
     "Finviz":               "https://finviz.com/news_feed.ashx",
     "Reuters Business":     "https://feeds.reuters.com/reuters/businessNews",
 
-#Indian News Sources
+    # Indian sources
     "Economic Times Markets":    "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms",
     "Economic Times Finance":    "https://economictimes.indiatimes.com/wealth/rssfeeds/837555174.cms",
     "Moneycontrol":              "https://www.moneycontrol.com/rss/marketsindia.xml",
@@ -20,7 +22,22 @@ RSS_FEEDS = {
     "Google News India Finance":  "https://news.google.com/rss/search?q=india+stock+market+nifty+sensex&hl=en-IN&gl=IN&ceid=IN:en",
     "Google News NSE":           "https://news.google.com/rss/search?q=NSE+BSE+nifty+sensex&hl=en-IN&gl=IN&ceid=IN:en",
     "Google News RBI":           "https://news.google.com/rss/search?q=RBI+india+economy+rupee&hl=en-IN&gl=IN&ceid=IN:en",
-   }
+}
+
+
+def strip_html(text: str) -> str:
+    # ─────────────────────────────────────────────────────────────
+    # Removes all HTML tags from text.
+    # RSS feeds sometimes return HTML like:
+    # <a href="...">article title</a> or <p>description</p>
+    # We strip all tags and clean up extra whitespace.
+    # ─────────────────────────────────────────────────────────────
+    if not text:
+        return ""
+    clean = re.sub(r'<[^>]+>', '', text)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    return clean
+
 
 def fetch_rss_articles():
     all_articles = []
@@ -30,9 +47,9 @@ def fetch_rss_articles():
             feed = feedparser.parse(url)
             for entry in feed.entries[:15]:
                 all_articles.append({
-                    "title":        entry.get("title", ""),
-                    "description":  entry.get("summary", ""),
-                    "content":      entry.get("summary", ""),
+                    "title":        strip_html(entry.get("title", "")),
+                    "description":  strip_html(entry.get("summary", "")),
+                    "content":      strip_html(entry.get("summary", "")),
                     "url":          entry.get("link", ""),
                     "source":       source_name,
                     "published_at": parse_struct_time(entry.get("published_parsed"))
@@ -42,6 +59,7 @@ def fetch_rss_articles():
 
     return all_articles
 
+
 def parse_struct_time(struct_time):
     if not struct_time:
         return None
@@ -49,12 +67,3 @@ def parse_struct_time(struct_time):
         return datetime(*struct_time[:6])
     except:
         return None
-
-def strip_html(text: str) -> str:
-    if not text:
-        return ""
-    # Remove HTML tags
-    clean = re.sub(r'<[^>]+>', '', text)
-    # Remove extra whitespace
-    clean = re.sub(r'\s+', ' ', clean).strip()
-    return clean

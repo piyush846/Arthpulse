@@ -40,7 +40,7 @@ from ingestion.rss_fetcher import fetch_rss_articles
 from ingestion.store import store_articles
 from api.routes_india import router as india_router
 
-
+from config import ALLOWED_ORIGINS
 # ─────────────────────────────────────────────────────────────────────
 # CREATE THE FASTAPI APP INSTANCE
 # Think of "app" like the main object that represents your entire server.
@@ -69,7 +69,7 @@ app = FastAPI(title="ArthPulse API", version="1.0.0")
 # ─────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins= ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

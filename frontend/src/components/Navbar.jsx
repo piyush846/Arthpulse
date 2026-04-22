@@ -1,20 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { triggerFetch } from '../services/api'
-import { useWindowSize } from '../hooks/useWindowSize'
 
 function Navbar() {
-  const [refreshing, setRefreshing]   = useState(false)
-  const [lastUpdated, setLastUpdated] = useState(
-    new Date().toLocaleTimeString()  // ← set initial value directly, no useEffect needed
-  )
-  const { isMobile } = useWindowSize()
+  const [refreshing, setRefreshing] = useState(false)
+ 
 
   async function handleRefresh() {
     setRefreshing(true)
     try {
       await triggerFetch()
-      setLastUpdated(new Date().toLocaleTimeString())
+      
       window.location.reload()
     } catch (err) {
       console.error("Refresh failed:", err)
@@ -27,7 +23,7 @@ function Navbar() {
     <nav style={{
       background: 'var(--bg-secondary)',
       borderBottom: '1px solid var(--border)',
-      padding: isMobile ? '0 16px' : '0 24px',
+      padding: '0 24px',
       height: '60px',
       display: 'flex',
       alignItems: 'center',
@@ -37,54 +33,45 @@ function Navbar() {
       zIndex: 100,
     }}>
 
+      {/* Left — Brand */}
       <Link to="/" style={{ textDecoration: 'none' }}>
         <span style={{
-          fontSize: isMobile ? '1.1rem' : '1.3rem',
+          fontSize: '1.3rem',
           fontWeight: 700,
           color: 'var(--text-primary)'
         }}>
           Arth<span style={{ color: 'var(--accent-blue)' }}>Pulse</span>
         </span>
-        {!isMobile && (
-          <span style={{
-            fontSize: '0.7rem',
-            color: 'var(--text-muted)',
-            marginLeft: '8px',
-            letterSpacing: '0.1em'
-          }}>
-            FINANCIAL INTELLIGENCE
-          </span>
-        )}
+        <span style={{
+          fontSize: '0.7rem',
+          color: 'var(--text-muted)',
+          marginLeft: '8px',
+          letterSpacing: '0.1em'
+        }}>
+          FINANCIAL INTELLIGENCE
+        </span>
       </Link>
 
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: isMobile ? '8px' : '16px'
-      }}>
-        {!isMobile && (
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Updated: {lastUpdated}
-          </span>
-        )}
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          style={{
-            background: refreshing ? 'var(--bg-tertiary)' : 'var(--accent-blue)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            padding: isMobile ? '6px 12px' : '8px 16px',
-            fontSize: isMobile ? '0.78rem' : '0.85rem',
-            cursor: refreshing ? 'not-allowed' : 'pointer',
-            fontWeight: 600,
-            transition: 'background 0.2s ease'
-          }}
-        >
-          {refreshing ? '...' : '⟳ Refresh'}
-        </button>
-      </div>
+      {/* Center — Last updated */}
+     
+      {/* Right — Refresh button only */}
+      <button
+        onClick={handleRefresh}
+        disabled={refreshing}
+        style={{
+          background: refreshing ? 'var(--bg-tertiary)' : 'transparent',
+          color: refreshing ? 'var(--text-muted)' : 'var(--accent-blue)',
+          border: `1px solid ${refreshing ? 'var(--border)' : 'var(--accent-blue)'}`,
+          borderRadius: '8px',
+          padding: '6px 16px',
+          fontSize: '0.85rem',
+          cursor: refreshing ? 'not-allowed' : 'pointer',
+          fontWeight: 600,
+          transition: 'all 0.2s ease'
+        }}
+      >
+        {refreshing ? 'Fetching...' : '⟳ Refresh'}
+      </button>
     </nav>
   )
 }

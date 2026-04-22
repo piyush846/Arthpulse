@@ -144,20 +144,20 @@ setTriggeredAlerts(triggered)
   const fearGreed = stats ? getFearGreed(stats.overall_sentiment) : null
 
   return (
-  <div style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px' }}>
+  <div className ="dashboard-container" style={{ maxWidth: '1600px', margin: '0 auto', padding: '24px' }}>
 {/* Tab Toggle */}
 <TabToggle/>
 
 
 
     {/* ── MARKET OVERVIEW ─────────────────────────────────── */}
-
+<MarketNarrative narrative={narrative} />
 
  
 
       {/* ── SECTION 1: STATS BAR ─────────────────────────────── */}
       {stats && (
-        <div style={{
+        <div className="stats-grid" style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: '16px',
@@ -203,7 +203,7 @@ setTriggeredAlerts(triggered)
           )}
 
           {/* Article Stats */}
-          <div className="card">
+          <div className="card" style={{ borderTop: '3px solid var(--accent-green)' }}>
             <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.1em' }}>
               ARTICLES TODAY
             </p>
@@ -266,7 +266,7 @@ setTriggeredAlerts(triggered)
       )}
 
       {/* ── SECTION 2: TOP MOVERS ────────────────────────────── */}
-      <div style={{
+      <div  className = "movers-grid" style={{
         display: 'grid',
         gridTemplateColumns: '1fr 1fr',
         gap: '16px',
@@ -479,7 +479,7 @@ setTriggeredAlerts(triggered)
     triggeredAlerts={triggeredAlerts}
 />
       {/* ── SECTION 5: TICKER GRID ───────────────────────────── */}
-      <div style={{ marginBottom: '32px' }}>
+      <div className = "ticker-grid" style={{ marginBottom: '32px' }}>
         <p style={{
           fontSize: '0.7rem', fontWeight: 700,
           color: 'var(--text-secondary)', letterSpacing: '0.1em',

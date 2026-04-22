@@ -6,19 +6,20 @@ function MarketBreadthBar() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       try {
         const res = await getMarketBreadth()
-        setData(res.data)
+        if (!cancelled) setData(res.data)
       } catch (err) {
         console.error('Breadth bar error:', err)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
     load()
     const interval = setInterval(load, 5 * 60 * 1000)
-    return () => clearInterval(interval)
+    return () => { cancelled = true; clearInterval(interval) }
   }, [])
 
   if (loading || data.length === 0) return (
@@ -33,21 +34,18 @@ function MarketBreadthBar() {
     <div style={{
       background: 'var(--bg-secondary)',
       borderBottom: '1px solid var(--border)',
-      padding: '0',
       height: '36px',
-      display: 'flex',
-      alignItems: 'center',
-      width: '100%',
       overflowX: 'auto',
       scrollbarWidth: 'none',
+      msOverflowStyle: 'none',
     }}>
-      {/* Scrolling ticker tape */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        width: '100%',
-        justifyContent: 'space-between',  // spread evenly across full width
-        padding: '0 24px',
+        height: '36px',
+        paddingLeft: '24px',
+        minWidth: '100%',
+        justifyContent:'flex-end'
       }}>
         {data.map((item, i) => (
           <div
@@ -55,10 +53,10 @@ function MarketBreadthBar() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
+              gap: '6px',
               whiteSpace: 'nowrap',
-              flexShrink: 0,
-              padding: '0 12px',
+              padding: '0 16px',
+              height: '36px',
               borderRight: i < data.length - 1
                 ? '1px solid var(--border)'
                 : 'none',
@@ -68,7 +66,7 @@ function MarketBreadthBar() {
               fontSize: '0.7rem',
               color: 'var(--text-muted)',
               fontWeight: 600,
-              letterSpacing: '0.05em'
+              letterSpacing: '0.04em'
             }}>
               {item.name}
             </span>

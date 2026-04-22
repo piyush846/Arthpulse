@@ -1,97 +1,117 @@
-import { useState, useEffect } from 'react'
-import { getMarketBreadth } from '../services/api'
-import { useWindowSize } from '../hooks/useWindowSize'
+function MarketNarrative({ narrative }) {
+  if (!narrative || narrative.length === 0) return null
 
-function MarketBreadthBar() {
-  const [data, setData]       = useState([])
-  const [loading, setLoading] = useState(true)
-  const { isMobile }          = useWindowSize()
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await getMarketBreadth()
-        setData(res.data)
-      } catch (err) {
-        console.error('Breadth bar error:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-    const interval = setInterval(load, 5 * 60 * 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  if (loading || data.length === 0) return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      borderBottom: '1px solid var(--border)',
-      height: '36px'
-    }} />
-  )
-
-  // On mobile show only most important indicators
-  const displayData = isMobile
-    ? data.filter(d => ['S&P 500', 'NIFTY 50', 'SENSEX', 'BTC'].includes(d.name))
-    : data
+  function getColor(color) {
+    if (color === 'green')  return 'var(--accent-green)'
+    if (color === 'red')    return 'var(--accent-red)'
+    return 'var(--accent-yellow)'
+  }
 
   return (
-    <div style={{
-      background: 'var(--bg-secondary)',
-      borderBottom: '1px solid var(--border)',
-      height: isMobile ? 'auto' : '36px',
-      overflowX: 'auto',
-      scrollbarWidth: 'none',
-    }}>
+    <div style={{ marginBottom: '32px' }}>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-        justifyContent: isMobile ? 'flex-start' : 'space-between',
-        padding: isMobile ? '8px 12px' : '0 24px',
-        flexWrap: isMobile ? 'wrap' : 'nowrap',
-        gap: isMobile ? '8px' : '0',
-        minHeight: '36px',
+        display: 'flex', alignItems: 'center',
+        gap: '10px', marginBottom: '16px'
       }}>
-        {displayData.map((item, i) => (
-          <div
-            key={item.name}
-            style={{
+        <div style={{
+          width: '3px', height: '20px',
+          background: 'var(--accent-blue)', borderRadius: '2px'
+        }} />
+        <p style={{
+          fontSize: '0.7rem', fontWeight: 700,
+          color: 'var(--text-secondary)',
+          letterSpacing: '0.12em', textTransform: 'uppercase'
+        }}>
+          🧠 Market Narrative — What's driving markets today
+        </p>
+      </div>
+
+      <div className="narrative-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '12px'
+      }}>
+        {narrative.map((theme) => (
+          <div key={theme.theme} style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderTop: `3px solid ${getColor(theme.direction_color)}`,
+            borderRadius: '10px',
+            padding: '16px',
+          }}>
+            <div style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              padding: isMobile ? '0' : '0 12px',
-              borderRight: (!isMobile && i < displayData.length - 1)
-                ? '1px solid var(--border)'
-                : 'none',
-            }}
-          >
-            <span style={{
-              fontSize: isMobile ? '0.65rem' : '0.7rem',
-              color: 'var(--text-muted)',
-              fontWeight: 600,
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '12px',
+              gap: '8px'
             }}>
-              {item.name}
-            </span>
-            <span style={{
-              fontSize: isMobile ? '0.72rem' : '0.78rem',
-              fontWeight: 700,
-              color: 'var(--text-primary)'
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.1rem' }}>{theme.icon}</span>
+                <span style={{
+                  fontSize: '0.82rem', fontWeight: 700,
+                  color: 'var(--text-primary)', lineHeight: '1.2'
+                }}>
+                  {theme.theme}
+                </span>
+              </div>
+              <span style={{
+                fontSize: '0.62rem', fontWeight: 700,
+                color: getColor(theme.direction_color),
+                background: `${getColor(theme.direction_color)}18`,
+                padding: '2px 7px', borderRadius: '4px',
+                whiteSpace: 'nowrap', flexShrink: 0
+              }}>
+                {theme.direction}
+              </span>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr 1fr',
+              gap: '8px', marginBottom: '12px'
             }}>
-              {item.price > 1000
-                ? item.price.toLocaleString()
-                : item.price.toFixed(2)}
-            </span>
-            <span style={{
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              color: item.positive ? 'var(--accent-green)' : 'var(--accent-red)'
+              <div>
+                <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                  DOMINANCE
+                </p>
+                <p style={{
+                  fontSize: '1rem', fontWeight: 800,
+                  color: getColor(theme.direction_color)
+                }}>
+                  {theme.dominance}%
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                  ARTICLES
+                </p>
+                <p style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  {theme.article_count}
+                </p>
+              </div>
+              <div>
+                <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
+                  SENTIMENT
+                </p>
+                <p style={{
+                  fontSize: '1rem', fontWeight: 800,
+                  color: getColor(theme.direction_color)
+                }}>
+                  {theme.avg_sentiment > 0 ? '+' : ''}{theme.avg_sentiment?.toFixed(3)}
+                </p>
+              </div>
+            </div>
+
+            <p style={{
+              fontSize: '0.72rem', color: 'var(--text-muted)',
+              borderTop: '1px solid var(--border)', paddingTop: '8px',
+              overflow: 'hidden', display: '-webkit-box',
+              WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              lineHeight: '1.4'
             }}>
-              {item.positive ? '▲' : '▼'} {Math.abs(item.change_pct).toFixed(2)}%
-            </span>
+              {theme.top_headline}
+            </p>
           </div>
         ))}
       </div>
@@ -99,4 +119,4 @@ function MarketBreadthBar() {
   )
 }
 
-export default MarketBreadthBar
+export default MarketNarrative
