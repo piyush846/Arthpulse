@@ -28,7 +28,7 @@ RUN mkdir -p /app/data
 
 # Expose port 7860 — Hugging Face standard port
 # Render uses this too
-EXPOSE 7860
+EXPOSE 10000
 
 # Start the server
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "10000"]
