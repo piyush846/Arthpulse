@@ -73,7 +73,7 @@ def get_dashboard(db: Session = Depends(get_db)):
     # Fallback to last 24 hours if today has no data yet
     if len(scored) < 10:
         from datetime import timedelta
-        cutoff = datetime.utcnow() - timedelta(hours=24)
+        cutoff = datetime.utcnow() - timedelta(days=24)
         scored = db.query(Article)\
                    .filter(Article.sentiment != None)\
                    .filter(Article.fetched_at >= cutoff)\

@@ -19,7 +19,7 @@ def get_finbert():
         print("[Sentiment] Loading FinBERT model...")
         _finbert = pipeline(
             "text-classification",
-    model="ProsusAI/finbert"
+    model="AdityaAI9/distilbert_finance_sentiment_analysis"
         )
         print("[Sentiment] FinBERT model loaded ✅")
     return _finbert
