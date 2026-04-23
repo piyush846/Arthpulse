@@ -167,36 +167,39 @@ INDIA_KEYWORDS = [
 # ─────────────────────────────────────────────────────────────────
 @router.get("/india/breadth")
 def get_india_breadth():
-    import yfinance as yf
+    import requests
 
     INDIA_SYMBOLS = {
-        "NIFTY 50":   "^NSEI",
-        "SENSEX":     "^BSESN",
-        "BANK NIFTY": "^NSEBANK",
-        "NIFTY IT":   "^CNXIT",
-        "USD/INR":    "INR=X",
-        "GOLD":       "GC=F",
-        "SILVER":     "SI=F",
+        "NIFTY 50":   "%5ENSEI",
+        "SENSEX":     "%5EBSESN",
+        "BANK NIFTY": "%5ENSEBANK",
+        "USD/INR":    "INR%3DX",
+        "GOLD":       "GC%3DF",
+        "SILVER":     "SI%3DF",
         "CRUDE OIL":  "USO",
+    }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
 
     result = []
     for name, symbol in INDIA_SYMBOLS.items():
         try:
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period="2d", interval="1d")
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d"
+            res = requests.get(url, headers=headers, timeout=10)
+            data = res.json()
 
-            if hist.empty or len(hist) < 1:
+            closes = data['chart']['result'][0]['indicators']['quote'][0]['close']
+            closes = [c for c in closes if c is not None]
+
+            if len(closes) < 1:
                 continue
 
-            current = float(hist["Close"].iloc[-1])
-            if len(hist) >= 2:
-                prev = float(hist["Close"].iloc[-2])
-                change = current - prev
-                change_pct = (change / prev) * 100
-            else:
-                change = 0
-                change_pct = 0
+            current = closes[-1]
+            prev = closes[-2] if len(closes) >= 2 else current
+            change = current - prev
+            change_pct = (change / prev) * 100 if prev else 0
 
             result.append({
                 "name":       name,
@@ -208,7 +211,7 @@ def get_india_breadth():
             })
 
         except Exception as e:
-            print(f"[India Breadth] Error {symbol}: {e}")
+            print(f"[India Breadth] Error {name}: {e}")
             continue
 
     return result
