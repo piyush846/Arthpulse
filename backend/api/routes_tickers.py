@@ -311,46 +311,42 @@ def get_ticker_prices(ticker: str):
         return []
 @router.get("/market/breadth")
 def get_market_breadth():
-    import yfinance as yf
+    import requests
 
     SYMBOLS = {
-        "S&P 500":  "^GSPC",
-        "NASDAQ":   "^IXIC",
-        "DOW":      "^DJI",
-        "NIFTY 50": "^NSEI",
-        "SENSEX":   "^BSESN",
-        "VIX":      "^VIX",
-        "OIL":      "USO",
-        "GOLD":     "GC=F",
-        "SILVER":   "SI=F",
+        "S&P 500":  "%5EGSPC",
+        "NASDAQ":   "%5EIXIC",
+        "DOW":      "%5EDJI",
+        "NIFTY 50": "%5ENSEI",
+        "SENSEX":   "%5EBSESN",
+        "VIX":      "%5EVIX",
         "BTC":      "BTC-USD",
+        "GOLD":     "GC%3DF",
+        "SILVER":   "SI%3DF",
+        "OIL":      "USO",
+    }
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
 
     result = []
     for name, symbol in SYMBOLS.items():
         try:
-            ticker = yf.Ticker(symbol)
-            # Use download instead of history — more reliable on servers
-            import yfinance as yf
-            data = yf.download(
-                symbol,
-                period="2d",
-                interval="1d",
-                progress=False,
-                auto_adjust=True
-            )
+            url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d"
+            res = requests.get(url, headers=headers, timeout=10)
+            data = res.json()
 
-            if data.empty or len(data) < 1:
+            closes = data['chart']['result'][0]['indicators']['quote'][0]['close']
+            closes = [c for c in closes if c is not None]
+
+            if len(closes) < 1:
                 continue
 
-            current = float(data["Close"].iloc[-1])
-            if len(data) >= 2:
-                prev = float(data["Close"].iloc[-2])
-                change = current - prev
-                change_pct = (change / prev) * 100
-            else:
-                change = 0
-                change_pct = 0
+            current = closes[-1]
+            prev = closes[-2] if len(closes) >= 2 else current
+            change = current - prev
+            change_pct = (change / prev) * 100 if prev else 0
 
             result.append({
                 "name":       name,
@@ -362,63 +358,7 @@ def get_market_breadth():
             })
 
         except Exception as e:
-            print(f"[Breadth] Error {symbol}: {e}")
+            print(f"[Breadth] Error {name}: {e}")
             continue
 
-    return result   
-def get_market_breadth():
-    import yfinance as yf
-
-    SYMBOLS = {
-        "S&P 500":  "^GSPC",
-        "NASDAQ":   "^IXIC",
-        "DOW":      "^DJI",
-        "NIFTY 50": "^NSEI",
-        "SENSEX":   "^BSESN",
-        "VIX":      "^VIX",
-        "OIL":      "USO",
-        "GOLD":     "GC=F",
-        "SILVER":   "SI=F",
-        "BTC":      "BTC-USD",
-    }
-
-    result = []
-    for name, symbol in SYMBOLS.items():
-        try:
-            ticker = yf.Ticker(symbol)
-            # Use download instead of history — more reliable on servers
-            import yfinance as yf
-            data = yf.download(
-                symbol,
-                period="2d",
-                interval="1d",
-                progress=False,
-                auto_adjust=True
-            )
-
-            if data.empty or len(data) < 1:
-                continue
-
-            current = float(data["Close"].iloc[-1])
-            if len(data) >= 2:
-                prev = float(data["Close"].iloc[-2])
-                change = current - prev
-                change_pct = (change / prev) * 100
-            else:
-                change = 0
-                change_pct = 0
-
-            result.append({
-                "name":       name,
-                "symbol":     symbol,
-                "price":      round(current, 2),
-                "change":     round(change, 2),
-                "change_pct": round(change_pct, 2),
-                "positive":   change >= 0
-            })
-
-        except Exception as e:
-            print(f"[Breadth] Error {symbol}: {e}")
-            continue
-
-    return result 
+    return result
