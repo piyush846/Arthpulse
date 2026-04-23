@@ -266,42 +266,40 @@ def get_ticker_history(ticker: str, db: Session = Depends(get_db)):
     return result
 @router.get("/ticker/{ticker}/prices")
 def get_ticker_prices(ticker: str):
-    # ─────────────────────────────────────────────────────────────
-    # Fetches last 7 days of stock price data using yfinance.
-    # yfinance scrapes Yahoo Finance — free, no API key needed.
-    #
-    # Returns daily OHLCV data:
-    # Open, High, Low, Close, Volume for each day
-    # We use "Close" price for the chart overlay.
-    # ─────────────────────────────────────────────────────────────
-    import yfinance as yf
+    import requests
 
     ticker = ticker.upper()
-
-    # Skip non-stock tickers — indices and crypto use different symbols
     skip_tickers = {"NIFTY50", "SENSEX", "SPY", "QQQ", "DIA", "BTC", "ETH"}
     if ticker in skip_tickers:
         return []
 
     try:
-        stock = yf.Ticker(ticker)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=7d"
+        res = requests.get(url, headers=headers, timeout=10)
+        data = res.json()
 
-        # period="7d" → last 7 days
-        # interval="1d" → daily candles
-        hist = stock.history(period="7d", interval="1d")
-
-        if hist.empty:
-            return []
+        result_data = data['chart']['result'][0]
+        timestamps = result_data['timestamp']
+        closes = result_data['indicators']['quote'][0]['close']
+        opens  = result_data['indicators']['quote'][0]['open']
+        highs  = result_data['indicators']['quote'][0]['high']
+        lows   = result_data['indicators']['quote'][0]['low']
 
         result = []
-        for date, row in hist.iterrows():
+        from datetime import datetime
+        for i, ts in enumerate(timestamps):
+            if closes[i] is None:
+                continue
             result.append({
-                "date":   date.strftime("%Y-%m-%d"),
-                "open":   round(float(row["Open"]), 2),
-                "high":   round(float(row["High"]), 2),
-                "low":    round(float(row["Low"]), 2),
-                "close":  round(float(row["Close"]), 2),
-                "volume": int(row["Volume"])
+                "date":   datetime.fromtimestamp(ts).strftime("%Y-%m-%d"),
+                "open":   round(opens[i] or 0, 2),
+                "high":   round(highs[i] or 0, 2),
+                "low":    round(lows[i] or 0, 2),
+                "close":  round(closes[i], 2),
+                "volume": 0
             })
 
         return result
@@ -309,6 +307,8 @@ def get_ticker_prices(ticker: str):
     except Exception as e:
         print(f"[Prices] Error fetching {ticker}: {e}")
         return []
+    
+    
 @router.get("/market/breadth")
 def get_market_breadth():
     import requests
