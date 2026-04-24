@@ -131,15 +131,13 @@ def run_fetch():
     all_articles = newsapi_articles + rss_articles
     store_articles(all_articles)
 
-    # Run AI engines after every fetch
-    # They only process articles where sentiment/tickers is NULL
-    # so already processed articles are automatically skipped
     print("[Engines] Running sentiment analysis...")
-    run_sentiment_engine()
+    run_sentiment_engine(limit=20)
 
     print("[Engines] Running ticker extraction...")
     run_ner_engine()
 
+   
 
 # ─────────────────────────────────────────────────────────────────────
 # ROUTE 1 — HEALTH CHECK
