@@ -19,7 +19,7 @@ def get_finbert():
         print("[Sentiment] Loading FinBERT model...")
         _finbert = pipeline(
             "text-classification",
-    model="yiyanghkust/finbert-tone"
+    model="mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis"
         )
         print("[Sentiment] FinBERT model loaded ✅")
     return _finbert
@@ -35,9 +35,9 @@ def score_text(text: str) -> float:
         label = result["label"]
         score = result["score"]
 
-        if label == "positive":
+        if label == "POSITIVE":
             return round(score, 4)
-        elif label == "negative":
+        elif label == "NEGATIVE":
             return round(-score, 4)
         else:
             return 0.0
