@@ -54,29 +54,30 @@ router = APIRouter()
 
 @router.get("/dashboard")
 def get_dashboard(db: Session = Depends(get_db)):
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
-    # Total count
+    # Total ALL articles ever
     total = db.query(Article).count()
 
-    # TODAY's articles only for sentiment calculations
-    today_start = datetime.utcnow().replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-
-    # Try today first
+    # For sentiment — use last 24 hours
+    cutoff_24h = datetime.utcnow() - timedelta(hours=24)
     scored = db.query(Article)\
                .filter(Article.sentiment != None)\
-               .filter(Article.fetched_at >= today_start)\
+               .filter(Article.fetched_at >= cutoff_24h)\
                .all()
 
-    # Fallback to last 24 hours if today has no data yet
+    # If less than 10 articles in last 24h, use last 7 days
     if len(scored) < 10:
-        from datetime import timedelta
-        cutoff = datetime.utcnow() - timedelta(days=24)
+        cutoff_7d = datetime.utcnow() - timedelta(days=7)
         scored = db.query(Article)\
                    .filter(Article.sentiment != None)\
-                   .filter(Article.fetched_at >= cutoff)\
+                   .filter(Article.fetched_at >= cutoff_7d)\
+                   .all()
+
+    # If still empty use ALL articles
+    if len(scored) == 0:
+        scored = db.query(Article)\
+                   .filter(Article.sentiment != None)\
                    .all()
 
     if not scored:
@@ -93,11 +94,9 @@ def get_dashboard(db: Session = Depends(get_db)):
 
     scores = [a.sentiment for a in scored]
     overall = round(sum(scores) / len(scores), 4)
-
     positive = sum(1 for s in scores if s > 0.1)
     negative = sum(1 for s in scores if s < -0.1)
     neutral  = sum(1 for s in scores if -0.1 <= s <= 0.1)
-
     most_bullish = max(scored, key=lambda a: a.sentiment)
     most_bearish = min(scored, key=lambda a: a.sentiment)
 

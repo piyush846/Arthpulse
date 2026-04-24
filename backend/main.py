@@ -207,6 +207,33 @@ def get_news(
           .all()                                # execute query, return as Python list
     )
     
+@app.get("/api/debug/sentiment")
+def debug_sentiment():
+    from engines.sentiment import score_text, get_finbert
+    
+    # Test with a known positive sentence
+    test_texts = [
+        "Goldman Sachs profits rise on strong earnings",
+        "Markets crash amid recession fears",
+        "Federal Reserve raises interest rates"
+    ]
+    
+    results = []
+    try:
+        finbert = get_finbert()
+        for text in test_texts:
+            raw = finbert(text[:512])[0]
+            score = score_text(text)
+            results.append({
+                "text": text,
+                "raw_label": raw["label"],
+                "raw_score": raw["score"],
+                "final_score": score
+            })
+    except Exception as e:
+        return {"error": str(e)}
+    
+    return results
     # FastAPI automatically converts this list of Article objects to JSON
     # You don't need json.dumps() or jsonify() — FastAPI handles it
     return articles
